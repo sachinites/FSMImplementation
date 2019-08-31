@@ -85,18 +85,17 @@ main(int argc, char **argv){
   /*Create a FSM*/
   fsm_t *fsm = create_new_fsm("Bit Flipper");
   
-  /*Assign the input buffer to FSM to execute*/
-  strncpy(fsm->input_buffer, "0101010101010", strlen("0101010101010"));
-  set_fsm_input_buffer_size(fsm, strlen("0101010101010"));
-  
   /*Register application specific input reader fn with FSM*/  
   fsm_register_input_reader_fn(fsm, bit_flipper_input_reader_fn);
 
   /*Optional : Register the state specific matching function with FSM*/
   fsm_register_generic_state_input_matching_fn_cb(fsm, bit_flipper_key_match_fn);
+  /*Optional : Resgiter the transition specific output function with FSM*/
+  fsm_register_generic_transition_output_fn(fsm, bit_flipper_output_fn_gen);
 
   /*Create FSM State*/
-  state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
+  state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, 0);
+  //state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
 
   /*Set FSM initial state*/
   set_fsm_initial_state(fsm, state_S0);
@@ -105,24 +104,63 @@ main(int argc, char **argv){
   char bit = '0';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1,
-                                 bit_flipper_output_fn_gen, 
+                                 0, /*bit_flipper_output_fn_gen, */
                                  state_S0);
 
   bit = '1';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1, 
-                                 bit_flipper_output_fn_gen, 
+                                 0, /*bit_flipper_output_fn_gen, */
                                  state_S0);
+
+
+
+  /*
+   * FSM creation has been complete, not let us see how out FSM perform
+   * */
  
   fsm_bool_t fsm_result; 
   fsm_error_t fsm_error;
   
-  fsm_error = execute_fsm(fsm, "0000000\0", strlen("0000000\0"), 0, &fsm_result);
+  fsm_error = execute_fsm(fsm, 
+                          "0000000\0",         /*Input String to process*/
+                          strlen("0000000\0"), /*Length of the Input String*/
+                          0,                   /*We want the output in the FSM Output buffer instead of application specific buffer*/
+                          &fsm_result);        /*Did the FSM execution ended in Final State*/
 
   if(fsm_error == FSM_NO_ERROR){
         printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
         printf("FSM Output string : \n%s\n", fsm->fsm_output_buff.output_buffer);
   }
-      
+    
+  /*Now, Application wants the FSM output in
+   * its own buffer*/ 
+  fsm_output_buff_t fsm_output_buff;
+  init_fsm_output_buffer(&fsm_output_buff);
+  
+  fsm_error = execute_fsm(fsm, 
+                          "1111111\0",         /*Input String to process*/
+                          strlen("1111111\0"), /*Length of the Input String*/
+                          &fsm_output_buff,    /*We want the output in the application specific buffer instead of FSM internal output buffer*/
+                          &fsm_result);        /*Did the FSM execution ended in Final State*/
+                                 
+  if(fsm_error == FSM_NO_ERROR){
+        printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
+        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
+  }
+
+  /*Assign the input buffer to FSM to execute*/
+  strncpy(fsm->input_buffer, "0101010101010\0", strlen("0101010101010"));
+  set_fsm_input_buffer_size(fsm, strlen("0101010101010\0"));
+  fsm_error = execute_fsm(fsm, 
+                          0,        /*We want to use FSM to use its internal Input Buffer which we have initialized above*/
+                          0,        /*Length of the Input String*/
+                          &fsm_output_buff,    /*We want the output in the application specific buffer instead of FSM internal output buffer*/
+                          &fsm_result);        /*Did the FSM execution ended in Final State*/
+                                 
+  if(fsm_error == FSM_NO_ERROR){
+        printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
+        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
+  }
   return 0;
 }
