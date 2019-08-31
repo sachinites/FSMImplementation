@@ -53,14 +53,20 @@ bit_flipper_input_reader_fn(char *input_buff,
    return 1; 
 }
 
-void
-bit_flipper_output_fn_gen(char *input_buff, 
-                          unsigned int size){
+void 
+bit_flipper_output_fn_gen(state_t *from, state_t *to,
+                          char *input_buff, 
+                          unsigned int input_buff_size,
+                          fsm_output_buff_t *fsm_output_buff){
 
     char out;
-
     out = (*input_buff == '1') ? '0' : '1';
-    printf("%c", out);
+    fsm_output_buff->curr_pos += snprintf(fsm_output_buff->output_buffer + 
+                                          fsm_output_buff->curr_pos, 
+             (MAX_FSM_OUTPUT_BUFFER - fsm_output_buff->curr_pos - 1), 
+             "%s-->%c|%c-->%s\n", 
+             from->state_name, *input_buff, out, 
+             to->state_name);
 }
 
 fsm_bool_t
@@ -107,8 +113,16 @@ main(int argc, char **argv){
                                  &bit, 1, 
                                  bit_flipper_output_fn_gen, 
                                  state_S0);
+ 
+  fsm_bool_t fsm_result; 
+  fsm_error_t fsm_error;
   
-  execute_fsm(fsm);
+  fsm_error = execute_fsm(fsm, "0000000\0", strlen("0000000\0"), 0, &fsm_result);
+
+  if(fsm_error == FSM_NO_ERROR){
+        printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
+        printf("FSM Output string : \n%s\n", fsm->fsm_output_buff.output_buffer);
+  }
       
   return 0;
 }

@@ -119,27 +119,39 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
 static state_t *
 fsm_apply_transition(fsm_t *fsm, state_t *state, 
                      char *input_buffer, 
-                     unsigned int size){
+                     unsigned int size,
+                     fsm_output_buff_t *output_buffer){
 
 
    tt_entry_t *tt_entry = NULL;
    state_input_matching_fn match_cb = NULL;
+   output_fn output_fn_cb = NULL;
+   state_t *next_state = NULL;
+    
+   match_cb = state->state_input_matching_fn_cb ?  \
+              state->state_input_matching_fn_cb :  \
+              fsm->generic_state_input_matching_fn_cb;
 
    FSM_ITERATE_TRANS_TABLE_BEGIN((&state->state_trans_table),
                                  tt_entry){
-
-        match_cb = state->state_input_matching_fn_cb ?  \
-                    state->state_input_matching_fn_cb : \
-                    fsm->generic_state_input_matching_fn_cb;
 
         if(match_cb(tt_entry->transition_key,
                     MAX_TRANSITION_KEY_SIZE,
                     input_buffer,
                     size)){
 
+            output_fn_cb = tt_entry->outp_fn ? tt_entry->outp_fn : \
+                            fsm->generic_transition_output_fn;
             
-            tt_entry->outp_fn(input_buffer, size); 
-            return tt_entry->next_state;
+            next_state = tt_entry->next_state;
+             
+            if(output_fn_cb){
+                output_fn_cb(state, next_state, 
+                            input_buffer, size,
+                            output_buffer);
+            }
+
+            return next_state;
         }
 
    }FSM_ITERATE_TRANS_TABLE_END(&state->state_trans_table,
@@ -150,7 +162,11 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
 
 
 fsm_error_t
-execute_fsm(fsm_t *fsm){
+execute_fsm(fsm_t *fsm, 
+            char *input_buffer, 
+            unsigned int size,
+            fsm_output_buff_t *output_buffer,
+            fsm_bool_t *fsm_result){
 
 
    state_t *initial_state = fsm->initial_state;
@@ -161,13 +177,38 @@ execute_fsm(fsm_t *fsm){
 
    fsm->input_buffer_cursor = 0;
    unsigned int length_read = 0;
+   unsigned int input_buffer_len = 0;
+   char *buffer_to_parse;
 
+   if(fsm_result){
+       *fsm_result = FSM_FALSE;
+   }
+
+   /*Use Application Supplied Buffer*/
+   if(input_buffer && size){
+        buffer_to_parse = input_buffer;
+        input_buffer_len = size;
+   }
+   else{
+        /*Use FSM buffer set by the application*/
+        buffer_to_parse = fsm->input_buffer;
+        input_buffer_len = fsm->input_buffer_size;
+   }
+
+   /*If application has not supplied output buffer,
+    * Use FSM's internal output buffer*/
+   if(!output_buffer){
+        output_buffer = &fsm->fsm_output_buff;
+   }
+   
+   init_fsm_output_buffer(output_buffer);
+   
    while(fsm->input_buffer_cursor < MAX_INP_BUFFER_LEN){
    
         memset(fsm->input_buffer_read, 0, MAX_OUP_BUFFER_LEN);
 
-        length_read = fsm->fsm_input_reader_fn(fsm->input_buffer,
-                                                        fsm->input_buffer_size,
+        length_read = fsm->fsm_input_reader_fn(buffer_to_parse,
+                                                        input_buffer_len,
                                                         fsm->input_buffer_cursor,
                                                         fsm->input_buffer_read,
                                                         &fsm->input_buffer_read_len,
@@ -177,7 +218,7 @@ execute_fsm(fsm_t *fsm){
         if(length_read){
             fsm->input_buffer_cursor += length_read;
             next_state = fsm_apply_transition(fsm, current_state, fsm->input_buffer_read,
-                                    fsm->input_buffer_read_len);
+                                    fsm->input_buffer_read_len, output_buffer);
             if(!next_state){
                 return NO_TRANSITION;   
             }
@@ -188,7 +229,10 @@ execute_fsm(fsm_t *fsm){
        
         break;
    }
-   
+ 
+   if(fsm_result){ 
+       *fsm_result = current_state->is_final; 
+   }
    return FSM_NO_ERROR;
 }
 
@@ -204,4 +248,17 @@ fsm_register_generic_state_input_matching_fn_cb(fsm_t *fsm,
     
     fsm->generic_state_input_matching_fn_cb = 
         generic_state_input_matching_fn_cb;
+}
+
+void
+fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb){
+
+    fsm->generic_transition_output_fn = output_fn_cb;
+}
+
+void
+init_fsm_output_buffer(fsm_output_buff_t *fsm_output_buff){
+    
+    memset(fsm_output_buff->output_buffer, 0, MAX_OUP_BUFFER_LEN);
+    fsm_output_buff->curr_pos = 0;
 }

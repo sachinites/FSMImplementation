@@ -47,9 +47,16 @@ typedef enum {
 #define MAX_STATE_NAME_SIZE 32
 #define MAX_FSM_NAME_SIZE 32
 #define MAX_TRANSITION_KEY_SIZE 64
+#define MAX_FSM_OUTPUT_BUFFER   1024
 
 typedef struct state_ state_t;
 typedef struct fsm_ fsm_t;
+
+typedef struct fsm_output_buff_{
+
+    char output_buffer[MAX_FSM_OUTPUT_BUFFER];
+    unsigned int curr_pos;
+} fsm_output_buff_t;
 
 typedef unsigned int (*input_fn)(    /*Returns the size of input buffer read*/
                char *,              /*Input Buffer*/
@@ -59,7 +66,10 @@ typedef unsigned int (*input_fn)(    /*Returns the size of input buffer read*/
                unsigned int *,      /*Size of Data Read*/
                unsigned int);       /*Max len of read out buffer*/
 
-typedef void (*output_fn)(char *, unsigned int);   /*output buff, size of outputbuff*/
+typedef void (*output_fn)(state_t *, state_t *,
+                          char *, unsigned int,   /*Input buff, size of Inputputbuff*/
+                          fsm_output_buff_t *);  /*Output Buff*/
+                          
 
 typedef struct tt_entry_ {
 
@@ -117,6 +127,9 @@ static inline tt_entry_t *get_tt_entry(
     return &(state->state_trans_table.tt_entry[index]);
 }
 
+void
+init_fsm_output_buffer(fsm_output_buff_t *fsm_output_buff);
+
 struct fsm_{
 
     /*Intitial state of FSM to start with*/
@@ -137,20 +150,31 @@ struct fsm_{
     unsigned int input_buffer_read_len;
     /* If FSM need to produce some output, the output
      * data shall be stored in this buffer*/
+    fsm_output_buff_t fsm_output_buff;
+#if 0
     char output_buffer[MAX_OUP_BUFFER_LEN];
     /* Length of data in the output buffer*/
     unsigned int output_buffer_len;
     /* Application specific cb, how to read the input
      * buffer of the application*/
+#endif
     input_fn fsm_input_reader_fn;
     /* A generic function to match the input string with the
      * key of transition table, this callback shall be
      * overridden by state->state_input_matching_fn_cb*/ 
     state_input_matching_fn generic_state_input_matching_fn_cb;
+    /*A generic function to output whenever transition happens from
+     * one state to another. This fn shall be overridden with 
+     * tt_entry_t->output_fn
+     * */
+    output_fn generic_transition_output_fn;
 };
 
 void
 fsm_register_input_reader_fn(fsm_t *fsm, input_fn fsm_input_reader_fn);
+
+void
+fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb);
 
 void
 set_fsm_initial_state(fsm_t *fsm, state_t *state);
@@ -202,6 +226,10 @@ typedef enum {
 } fsm_error_t;
 
 fsm_error_t
-execute_fsm(fsm_t *fsm);
+execute_fsm(fsm_t *fsm, 
+            char *input_buffer, 
+            unsigned int size,
+            fsm_output_buff_t *output_buffer,
+            fsm_bool_t *fsm_result);
 
 #endif /* __FSM__ */
