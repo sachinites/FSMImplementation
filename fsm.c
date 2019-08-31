@@ -109,7 +109,10 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
         return;
     }
 
-    memcpy(tt_entry_ptr->transition_key, transition_key, sizeof_key);
+    /*transition_key could be NULL*/
+    if(transition_key){
+        memcpy(tt_entry_ptr->transition_key, transition_key, sizeof_key);
+    }
     tt_entry_ptr->transition_key[sizeof_key] = '\0';
     tt_entry_ptr->transition_key_size = sizeof_key;
     tt_entry_ptr->outp_fn = outp_fn;
