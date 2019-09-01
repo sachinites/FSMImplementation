@@ -70,8 +70,9 @@ bit_flipper_output_fn_gen(state_t *from, state_t *to,
 }
 
 fsm_bool_t
-bit_flipper_key_match_fn(char *data1, unsigned int size1,
-                         char *data2, unsigned int size2){
+bit_flipper_key_match_fn(char *data1, 
+                         unsigned int size,
+                         char *data2){
 
    
     if(*data1 == *data2) 

@@ -109,10 +109,7 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
         return;
     }
 
-    /*transition_key could be NULL*/
-    if(transition_key){
-        memcpy(tt_entry_ptr->transition_key, transition_key, sizeof_key);
-    }
+    memcpy(tt_entry_ptr->transition_key, transition_key, sizeof_key);
     tt_entry_ptr->transition_key[sizeof_key] = '\0';
     tt_entry_ptr->transition_key_size = sizeof_key;
     tt_entry_ptr->outp_fn = outp_fn;
@@ -121,8 +118,9 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
 
 static state_t *
 fsm_apply_transition(fsm_t *fsm, state_t *state, 
-                     char *input_buffer, 
-                     unsigned int size,
+                     char *input_buffer,        /*Input buffer to parse*/
+                     unsigned int size,         /*Remaining length of the buffer*/
+                     unsigned int *length_read, /* initialized to zero, returns the no of bytes read*/
                      fsm_output_buff_t *output_buffer){
 
 
@@ -138,10 +136,10 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
    FSM_ITERATE_TRANS_TABLE_BEGIN((&state->state_trans_table),
                                  tt_entry){
 
-        if(match_cb(tt_entry->transition_key,
-                    MAX_TRANSITION_KEY_SIZE,
-                    input_buffer,
-                    size)){
+        if((tt_entry->transition_key_size < size) &&
+            match_cb(tt_entry->transition_key,
+                    tt_entry->transition_key_size,
+                    input_buffer)){
 
             output_fn_cb = tt_entry->outp_fn ? tt_entry->outp_fn : \
                             fsm->generic_transition_output_fn;
@@ -150,10 +148,12 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
              
             if(output_fn_cb){
                 output_fn_cb(state, next_state, 
-                            input_buffer, size,
+                            input_buffer, 
+                            tt_entry->transition_key_size,
                             output_buffer);
             }
 
+            *length_read = tt_entry->transition_key_size;
             return next_state;
         }
 
@@ -163,13 +163,12 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
 }
 
 
-
 fsm_error_t
 execute_fsm(fsm_t *fsm, 
-            char *input_buffer, 
-            unsigned int size,
-            fsm_output_buff_t *output_buffer,
-            fsm_bool_t *fsm_result){
+            char *input_buffer,         /*Input buffer containing user data*/
+            unsigned int size,          /*Size of the data in the buffer*/
+            fsm_output_buff_t *output_buffer,   /*output buffer to write data into*/
+            fsm_bool_t *fsm_result){            /*A flag to track if data parsing ends in final state or not */
 
 
    state_t *initial_state = fsm->initial_state;
@@ -208,28 +207,24 @@ execute_fsm(fsm_t *fsm,
    
    while(fsm->input_buffer_cursor < MAX_INP_BUFFER_LEN){
    
-        memset(fsm->input_buffer_read, 0, MAX_OUP_BUFFER_LEN);
-
-        length_read = fsm->fsm_input_reader_fn(buffer_to_parse,
-                                                        input_buffer_len,
-                                                        fsm->input_buffer_cursor,
-                                                        fsm->input_buffer_read,
-                                                        &fsm->input_buffer_read_len,
-                                                        MAX_OUP_BUFFER_LEN
-                                                        );
-   
+        length_read = 0;
+         
+        next_state = fsm_apply_transition(fsm, current_state, 
+                        buffer_to_parse + fsm->input_buffer_cursor, 
+                        (input_buffer_len - fsm->input_buffer_cursor),
+                        &length_read, output_buffer);
+        
         if(length_read){
+
             fsm->input_buffer_cursor += length_read;
-            next_state = fsm_apply_transition(fsm, current_state, fsm->input_buffer_read,
-                                    fsm->input_buffer_read_len, output_buffer);
+
             if(!next_state){
-                return NO_TRANSITION;   
+                return NO_TRANSITION;
             }
 
             current_state = next_state;
             continue;
         }
-       
         break;
    }
  

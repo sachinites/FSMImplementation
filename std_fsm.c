@@ -65,15 +65,15 @@ std_key_match_fn_1_char(char *data1, unsigned int size1,
 }
 
 static fsm_bool_t
-match_any_digit_or_alphabet_key_match_fn(char *data1, unsigned int size1,
-                             char *data2, unsigned int size2){
+match_any_digit_or_alphabet_key_match_fn(char *data1, unsigned int size,
+                             char *data2){
     
     /* I am not bothered what is there in transition table key buffer (data1)
      * bevause i am using hard-coded values here. This way I would have
      * to create very minimal no of transition entries in transition 
      * tables of states*/
 
-      if(size2 == 0){
+      if(size == 0){
         return FSM_FALSE;
       }
 

@@ -90,9 +90,9 @@ is_tt_entry_empty (tt_entry_t *tt_entry){
 }
 
 typedef fsm_bool_t (*state_input_matching_fn)(
-    char *data1, unsigned int size1,
-    char *data2, unsigned int size2
-);
+    char *data1, 
+    unsigned int size,
+    char *data2);
 
 typedef struct tt_{
 
@@ -143,27 +143,16 @@ struct fsm_{
     unsigned int input_buffer_size;
     /*Cursor to read the above input_buffer in coninuation*/
     unsigned int input_buffer_cursor;
-    /*The chunk of data will be stored in the below buffer
-     * This data will be used by FSM for transition to next state*/
-    char input_buffer_read[MAX_INP_BUFFER_LEN];
-    /* Length of chunk data atored in above buffer*/
-    unsigned int input_buffer_read_len;
     /* If FSM need to produce some output, the output
      * data shall be stored in this buffer*/
     fsm_output_buff_t fsm_output_buff;
-#if 0
-    char output_buffer[MAX_OUP_BUFFER_LEN];
-    /* Length of data in the output buffer*/
-    unsigned int output_buffer_len;
-    /* Application specific cb, how to read the input
-     * buffer of the application*/
-#endif
+    
     input_fn fsm_input_reader_fn;
     /* A generic function to match the input string with the
      * key of transition table, this callback shall be
      * overridden by state->state_input_matching_fn_cb*/ 
     state_input_matching_fn generic_state_input_matching_fn_cb;
-    /*A generic function to output whenever transition happens from
+    /* A generic function to output whenever transition happens from
      * one state to another. This fn shall be overridden with 
      * tt_entry_t->output_fn
      * */
@@ -175,6 +164,10 @@ fsm_register_input_reader_fn(fsm_t *fsm, input_fn fsm_input_reader_fn);
 
 void
 fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb);
+
+void
+fsm_register_generic_state_input_matching_fn_cb(fsm_t *fsm,
+        state_input_matching_fn generic_state_input_matching_fn_cb);
 
 void
 set_fsm_initial_state(fsm_t *fsm, state_t *state);
