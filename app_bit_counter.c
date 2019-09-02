@@ -35,6 +35,12 @@
 #include <memory.h>
 #include "fsm.h"
 
+typedef struct bit_counter_ {
+
+    unsigned int count_1;
+    unsigned int count_0;
+} bit_counter_t;
+
 void 
 bit_flipper_output_fn_gen(state_t *from, state_t *to,
                           char *input_buff, 
@@ -42,7 +48,23 @@ bit_flipper_output_fn_gen(state_t *from, state_t *to,
                           fsm_output_buff_t *fsm_output_buff){
 
     char out;
-    out = (*input_buff == '1') ? '0' : '1';
+
+    if(fsm_output_buff->curr_pos == 0){
+
+        fsm_output_buff->curr_pos = sizeof(bit_counter_t);
+    }
+
+    bit_counter_t *stats_space = (bit_counter_t *)fsm_output_buff->output_buffer;
+    
+    if(*input_buff == '1'){
+        out = '0';
+        stats_space->count_1++;
+    }
+    else{
+        out = '1';
+        stats_space->count_0++;
+    }
+
     fsm_output_buff->curr_pos += snprintf(fsm_output_buff->output_buffer + 
                                           fsm_output_buff->curr_pos, 
              (MAX_FSM_OUTPUT_BUFFER - fsm_output_buff->curr_pos - 1), 
@@ -97,7 +119,10 @@ main(int argc, char **argv){
 
   if(fsm_error == FSM_NO_ERROR){
         printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
-        printf("FSM Output string : \n%s\n", fsm->fsm_output_buff.output_buffer);
+        printf("FSM Output string : \n%s\n", fsm->fsm_output_buff.output_buffer + sizeof(bit_counter_t));
+        printf("FSM Output Stats : #of 1's = %u, #of 0's = %u\n", 
+            ((bit_counter_t *)fsm->fsm_output_buff.output_buffer)->count_1,
+            ((bit_counter_t *)fsm->fsm_output_buff.output_buffer)->count_0);
   }
     
   /*Now, Application wants the FSM output in
@@ -113,7 +138,10 @@ main(int argc, char **argv){
                                  
   if(fsm_error == FSM_NO_ERROR){
         printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
-        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
+        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer + sizeof(bit_counter_t));
+        printf("FSM Output Stats : #of 1's = %u, #of 0's = %u\n", 
+            ((bit_counter_t *)fsm_output_buff.output_buffer)->count_1,
+            ((bit_counter_t *)fsm_output_buff.output_buffer)->count_0);
   }
 
   /*Assign the input buffer to FSM to execute*/
@@ -127,7 +155,10 @@ main(int argc, char **argv){
                                  
   if(fsm_error == FSM_NO_ERROR){
         printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
-        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
+        printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer + sizeof(bit_counter_t));
+        printf("FSM Output Stats : #of 1's = %u, #of 0's = %u\n", 
+            ((bit_counter_t *)fsm_output_buff.output_buffer)->count_1,
+            ((bit_counter_t *)fsm_output_buff.output_buffer)->count_0);
   }
   return 0;
 }
