@@ -35,19 +35,28 @@
 
 #include "fsm.h"
 
-/*Standard FSM Input Reader Function*/
+/* Standard utility callbacks for transition table
+ * entry matching*/
 
-/*Reading 1 characted at a time*/
-unsigned int
-std_input_reader_fn_read_1_char(char *input_buff, 
-                                unsigned int size,
-                                unsigned int start_pos,
-                                char *read_out_buff,   /*Already zeroed out*/
-                                unsigned int *read_out_buff_len,
-                                unsigned int read_out_buff_max_size);
+fsm_bool_t
+match_any_0_9_match_fn(char *data1,         /*Transition entry key, which will be empty buffer*/
+        unsigned int size,                  /*size shall be zero*/
+        char *data2);                       /*Data from User Input*/
 
+fsm_bool_t
+match_any_a_z_match_fn(char *data1,       /*Transition entry key, which will be empty buffer*/
+        unsigned int size,                /*size shall be zero*/
+        char *data2);                     /*Data from User Input*/
 
+fsm_bool_t
+match_any_A_Z_match_fn(char *data1,       /*Transition entry key, which will be empty buffer*/
+        unsigned int size,                /*size shall be zero*/
+        char *data2);                     /*Data from User Input*/
 
+fsm_bool_t
+match_any_0_9_or_a_z_or_A_Z_match_fn(char *data1, 
+                                     unsigned int size,
+                                     char *data2);
 
 /*Standard Example FSMs*/
 fsm_t *email_validator_fsm();

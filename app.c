@@ -35,24 +35,6 @@
 #include <memory.h>
 #include "fsm.h"
 
-unsigned int
-bit_flipper_input_reader_fn(char *input_buff,
-                         unsigned int size,
-                         unsigned int start_pos,
-                         char *read_out_buff,   /*Already zeroed out*/
-                         unsigned int *read_out_buff_len,
-                         unsigned int read_out_buff_max_size){
-
-
-   if(start_pos > (size -1))
-       return 0;
-
-   memcpy(read_out_buff, input_buff + start_pos, 1);
-   read_out_buff[1] = '\0';
-   *read_out_buff_len = 1;
-   return 1; 
-}
-
 void 
 bit_flipper_output_fn_gen(state_t *from, state_t *to,
                           char *input_buff, 
@@ -69,33 +51,17 @@ bit_flipper_output_fn_gen(state_t *from, state_t *to,
              to->state_name);
 }
 
-fsm_bool_t
-bit_flipper_key_match_fn(char *data1, 
-                         unsigned int size,
-                         char *data2){
-
-   
-    if(*data1 == *data2) 
-        return FSM_TRUE;
-     return FSM_FALSE;
-}
-
 int
 main(int argc, char **argv){
 
   /*Create a FSM*/
   fsm_t *fsm = create_new_fsm("Bit Flipper");
   
-  /*Register application specific input reader fn with FSM*/  
-  fsm_register_input_reader_fn(fsm, bit_flipper_input_reader_fn);
-
-  /*Optional : Register the state specific matching function with FSM*/
-  fsm_register_generic_state_input_matching_fn_cb(fsm, bit_flipper_key_match_fn);
   /*Optional : Resgiter the transition specific output function with FSM*/
   fsm_register_generic_transition_output_fn(fsm, bit_flipper_output_fn_gen);
 
   /*Create FSM State*/
-  state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, 0);
+  state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE);
   //state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
 
   /*Set FSM initial state*/

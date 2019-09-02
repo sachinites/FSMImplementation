@@ -89,7 +89,7 @@ is_tt_entry_empty (tt_entry_t *tt_entry){
     return FSM_FALSE;
 }
 
-typedef fsm_bool_t (*state_input_matching_fn)(
+typedef fsm_bool_t (*input_matching_fn)(
     char *data1, 
     unsigned int size,
     char *data2);
@@ -109,9 +109,6 @@ struct state_ {
     tt_t state_trans_table;
     /*Boolean if the state is final or not*/
     fsm_bool_t is_final; 
-    /* A matching fn to match with the application input data with
-     * the key of transition table*/
-    state_input_matching_fn state_input_matching_fn_cb;
     /*When transition happens from this state, state may want to
      * write some output, Use the below buffer for this purpose*/
     char state_specific_output_buffer[MAX_OUP_BUFFER_LEN];
@@ -146,12 +143,9 @@ struct fsm_{
     /* If FSM need to produce some output, the output
      * data shall be stored in this buffer*/
     fsm_output_buff_t fsm_output_buff;
-    
-    input_fn fsm_input_reader_fn;
     /* A generic function to match the input string with the
-     * key of transition table, this callback shall be
-     * overridden by state->state_input_matching_fn_cb*/ 
-    state_input_matching_fn generic_state_input_matching_fn_cb;
+     * key of transition table*/
+    input_matching_fn input_matching_fn_cb;
     /* A generic function to output whenever transition happens from
      * one state to another. This fn shall be overridden with 
      * tt_entry_t->output_fn
@@ -160,14 +154,11 @@ struct fsm_{
 };
 
 void
-fsm_register_input_reader_fn(fsm_t *fsm, input_fn fsm_input_reader_fn);
-
-void
 fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb);
 
 void
-fsm_register_generic_state_input_matching_fn_cb(fsm_t *fsm,
-        state_input_matching_fn generic_state_input_matching_fn_cb);
+fsm_register_input_matching_fn_cb(fsm_t *fsm,
+        input_matching_fn input_matching_fn_cb);
 
 void
 set_fsm_initial_state(fsm_t *fsm, state_t *state);
@@ -182,8 +173,7 @@ void
 set_fsm_default_output_fn(fsm_t *fsm, output_fn default_output_fn);
 
 state_t *
-create_new_state(fsm_t *fsm, char *state_name, fsm_bool_t is_final, 
-                 state_input_matching_fn state_input_matching_fn_cb);
+create_new_state(fsm_t *fsm, char *state_name, fsm_bool_t is_final); 
 
 void create_and_insert_new_tt_entry(tt_t *trans_table,
                                     char *transition_key,
@@ -214,7 +204,7 @@ void print_state(state_t *state);
 
 typedef enum {
 
-    NO_TRANSITION,
+    FSM_NO_TRANSITION,
     FSM_NO_ERROR
 } fsm_error_t;
 

@@ -35,11 +35,23 @@
 #include <memory.h>
 #include "fsm.h"
 
+static fsm_bool_t
+fsm_default_input_matching_fn(char *transition_key,
+                                       unsigned int size,
+                                       char *user_data){
+
+    if(memcmp(transition_key, user_data, size))
+        return FSM_FALSE;
+    return FSM_TRUE;
+}
+
 fsm_t *create_new_fsm(const char *fsm_name){
 
     fsm_t * fsm = calloc(1, sizeof(fsm_t));
     strncpy(fsm->fsm_name, fsm_name, MAX_FSM_NAME_SIZE - 1);
     fsm->fsm_name[MAX_FSM_NAME_SIZE - 1] = '\0';
+    fsm_register_input_matching_fn_cb(fsm, 
+        fsm_default_input_matching_fn);
     return fsm;
 }
 
@@ -60,8 +72,7 @@ set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size){
 
 state_t *
 create_new_state(fsm_t *fsm, char *state_name,
-                 fsm_bool_t is_final,
-                 state_input_matching_fn state_input_matching_fn_cb){
+                 fsm_bool_t is_final){
 
     assert(state_name);
     
@@ -71,8 +82,6 @@ create_new_state(fsm_t *fsm, char *state_name,
     state->state_name[MAX_STATE_NAME_SIZE -1] = '\0';
 
     state->is_final = is_final;
-    state->state_input_matching_fn_cb = state_input_matching_fn_cb ? \
-        state_input_matching_fn_cb : fsm->generic_state_input_matching_fn_cb;
     return state;
 }
 
@@ -125,21 +134,16 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
 
 
    tt_entry_t *tt_entry = NULL;
-   state_input_matching_fn match_cb = NULL;
    output_fn output_fn_cb = NULL;
    state_t *next_state = NULL;
     
-   match_cb = state->state_input_matching_fn_cb ?  \
-              state->state_input_matching_fn_cb :  \
-              fsm->generic_state_input_matching_fn_cb;
-
    FSM_ITERATE_TRANS_TABLE_BEGIN((&state->state_trans_table),
                                  tt_entry){
 
-        if((tt_entry->transition_key_size < size) &&
-            match_cb(tt_entry->transition_key,
-                    tt_entry->transition_key_size,
-                    input_buffer)){
+        if((tt_entry->transition_key_size <= size) &&
+            fsm->input_matching_fn_cb(tt_entry->transition_key,
+                            tt_entry->transition_key_size,
+                            input_buffer)){
 
             output_fn_cb = tt_entry->outp_fn ? tt_entry->outp_fn : \
                             fsm->generic_transition_output_fn;
@@ -219,7 +223,7 @@ execute_fsm(fsm_t *fsm,
             fsm->input_buffer_cursor += length_read;
 
             if(!next_state){
-                return NO_TRANSITION;
+                return FSM_NO_TRANSITION;
             }
 
             current_state = next_state;
@@ -235,17 +239,10 @@ execute_fsm(fsm_t *fsm,
 }
 
 void
-fsm_register_input_reader_fn(fsm_t *fsm, input_fn fsm_input_reader_fn){
-
-    fsm->fsm_input_reader_fn = fsm_input_reader_fn;
-}
-
-void
-fsm_register_generic_state_input_matching_fn_cb(fsm_t *fsm, 
-        state_input_matching_fn generic_state_input_matching_fn_cb){
+fsm_register_input_matching_fn_cb(fsm_t *fsm, 
+        input_matching_fn input_matching_fn_cb){
     
-    fsm->generic_state_input_matching_fn_cb = 
-        generic_state_input_matching_fn_cb;
+    fsm->input_matching_fn_cb = input_matching_fn_cb;
 }
 
 void
