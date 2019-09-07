@@ -349,5 +349,5 @@ register_input_matching_tt_entry_cb(tt_entry_t *tt_entry,
             input_matching_fn_cb;
             return;   
     }
-    assert(i != MAX_TT_ENTRY_CALLBACKS);
+    assert(0);
 }
