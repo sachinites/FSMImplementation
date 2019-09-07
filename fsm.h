@@ -48,6 +48,7 @@ typedef enum {
 #define MAX_FSM_NAME_SIZE 32
 #define MAX_TRANSITION_KEY_SIZE 64
 #define MAX_FSM_OUTPUT_BUFFER   1024
+#define MAX_TT_ENTRY_CALLBACKS  5
 
 typedef struct state_ state_t;
 typedef struct fsm_ fsm_t;
@@ -70,6 +71,11 @@ typedef void (*output_fn)(state_t *, state_t *,
                           char *, unsigned int,   /*Input buff, size of Inputputbuff*/
                           fsm_output_buff_t *);  /*Output Buff*/
                           
+typedef fsm_bool_t (*input_matching_fn)(
+    char *data1, 
+    unsigned int size,
+    char *data2,
+    unsigned int *length_read);
 
 typedef struct tt_entry_ {
 
@@ -77,6 +83,8 @@ typedef struct tt_entry_ {
     unsigned int transition_key_size;
     output_fn outp_fn;
     state_t *next_state;
+    input_matching_fn 
+        input_matching_fn_cb[MAX_TT_ENTRY_CALLBACKS];
 } tt_entry_t;
 
 static inline fsm_bool_t 
@@ -88,11 +96,6 @@ is_tt_entry_empty (tt_entry_t *tt_entry){
 
     return FSM_FALSE;
 }
-
-typedef fsm_bool_t (*input_matching_fn)(
-    char *data1, 
-    unsigned int size,
-    char *data2);
 
 typedef struct tt_{
 
@@ -109,11 +112,6 @@ struct state_ {
     tt_t state_trans_table;
     /*Boolean if the state is final or not*/
     fsm_bool_t is_final; 
-    /*When transition happens from this state, state may want to
-     * write some output, Use the below buffer for this purpose*/
-    char state_specific_output_buffer[MAX_OUP_BUFFER_LEN];
-    /*Length of the data present in above abuffer*/
-    unsigned int state_specific_output_buffer_len;
 };
 
 static inline tt_entry_t *get_tt_entry(
@@ -175,11 +173,15 @@ set_fsm_default_output_fn(fsm_t *fsm, output_fn default_output_fn);
 state_t *
 create_new_state(fsm_t *fsm, char *state_name, fsm_bool_t is_final); 
 
-void create_and_insert_new_tt_entry(tt_t *trans_table,
+tt_entry_t * create_and_insert_new_tt_entry(tt_t *trans_table,
                                     char *transition_key,
                                     unsigned int sizeof_key,
                                     output_fn outp_fn,
                                     state_t *next_state);
+void
+create_and_insert_new_tt_entry_wild_card(state_t *from_state, 
+                                         state_t *to_state, 
+                                         output_fn output_fn_cb);
 
 fsm_t *create_new_fsm(const char *fsm_name);
 
@@ -198,7 +200,7 @@ fsm_t *create_new_fsm(const char *fsm_name);
 tt_entry_t *
 get_next_empty_tt_entry(tt_t *trans_table);
 
-void print_fsm(fsm_t *);
+void print_fsm(fsm_t *fsm);
 void print_state(state_t *state);
 
 
@@ -214,5 +216,9 @@ execute_fsm(fsm_t *fsm,
             unsigned int size,
             fsm_output_buff_t *output_buffer,
             fsm_bool_t *fsm_result);
+
+void
+register_input_matching_tt_entry_cb(tt_entry_t *tt_entry, 
+                            input_matching_fn input_matching_fn_cb);
 
 #endif /* __FSM__ */

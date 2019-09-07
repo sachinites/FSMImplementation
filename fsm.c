@@ -37,13 +37,26 @@
 
 static fsm_bool_t
 fsm_default_input_matching_fn(char *transition_key,
-                                       unsigned int size,
-                                       char *user_data){
+                                    unsigned int size,
+                                    char *user_data,
+                                    unsigned int *length_read){
 
     if(memcmp(transition_key, user_data, size))
         return FSM_FALSE;
+    *length_read = size;
     return FSM_TRUE;
 }
+
+static fsm_bool_t
+fsm_pass_through_fn(char *transition_key,
+                    unsigned int size,
+                    char *user_data,
+                    unsigned int *length_read){
+
+    *length_read = 1;
+    return FSM_TRUE;
+}
+
 
 fsm_t *create_new_fsm(const char *fsm_name){
 
@@ -103,7 +116,8 @@ get_next_empty_tt_entry(tt_t *trans_table){
 }
 
 
-void create_and_insert_new_tt_entry(tt_t *trans_table,
+tt_entry_t *
+create_and_insert_new_tt_entry(tt_t *trans_table,
         char *transition_key,
         unsigned int sizeof_key,
         output_fn outp_fn,
@@ -123,6 +137,66 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
     tt_entry_ptr->transition_key_size = sizeof_key;
     tt_entry_ptr->outp_fn = outp_fn;
     tt_entry_ptr->next_state = next_state;
+    return tt_entry_ptr;
+}
+
+/* A transition Table Entry which tskes the transition from 
+ * 'from_state' to 'to_state,' irrespective of the input
+ * character, it may produce output*/
+void
+create_and_insert_new_tt_entry_wild_card(state_t *from_state, 
+                                     state_t *to_state, 
+                                     output_fn output_fn_cb){
+
+    tt_entry_t *tt_entry = create_and_insert_new_tt_entry(&from_state->state_trans_table,
+                                   0, 0, output_fn_cb, to_state);
+    register_input_matching_tt_entry_cb(tt_entry, fsm_pass_through_fn);
+}
+
+
+static fsm_bool_t
+fsm_evaluate_transition_entry_match(fsm_t *fsm, 
+                                    tt_entry_t *tt_entry, 
+                                    char *input_buffer,
+                                    unsigned int *length_read) {
+
+   unsigned int i = 0;
+   fsm_bool_t is_tt_entry_cb_present = FSM_FALSE;
+   fsm_bool_t res = FSM_FALSE;
+      
+   if(!input_buffer)
+       return FSM_TRUE;
+
+   is_tt_entry_cb_present = tt_entry->input_matching_fn_cb[0] ? \
+                            FSM_TRUE : FSM_FALSE;
+
+   if(is_tt_entry_cb_present){
+
+        for(; i < MAX_TT_ENTRY_CALLBACKS; i++){
+
+            if(!tt_entry->input_matching_fn_cb[i]){
+                return FSM_FALSE;
+            }
+
+            if((tt_entry->input_matching_fn_cb[i])(
+                    NULL, 0, input_buffer, length_read)){
+                return FSM_TRUE;
+            }
+            /*Be immune !*/
+            *length_read = 0;
+        }
+        return FSM_FALSE;
+   }
+
+   res = fsm->input_matching_fn_cb(tt_entry->transition_key,
+           tt_entry->transition_key_size,
+           input_buffer, length_read);
+
+    if(res == FSM_TRUE){
+        *length_read = tt_entry->transition_key_size;
+    }
+
+   return res;
 }
 
 static state_t *
@@ -136,15 +210,18 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
    tt_entry_t *tt_entry = NULL;
    output_fn output_fn_cb = NULL;
    state_t *next_state = NULL;
-    
+
+   assert(size);
+
    FSM_ITERATE_TRANS_TABLE_BEGIN((&state->state_trans_table),
                                  tt_entry){
 
         if((tt_entry->transition_key_size <= size) &&
-            fsm->input_matching_fn_cb(tt_entry->transition_key,
-                            tt_entry->transition_key_size,
-                            input_buffer)){
-
+            fsm_evaluate_transition_entry_match(fsm, 
+                                                tt_entry, 
+                                                input_buffer,
+                                                length_read)){
+            
             output_fn_cb = tt_entry->outp_fn ? tt_entry->outp_fn : \
                             fsm->generic_transition_output_fn;
             
@@ -157,7 +234,6 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
                             output_buffer);
             }
 
-            *length_read = tt_entry->transition_key_size;
             return next_state;
         }
 
@@ -218,15 +294,18 @@ execute_fsm(fsm_t *fsm,
                         (input_buffer_len - fsm->input_buffer_cursor),
                         &length_read, output_buffer);
         
+        if(!next_state){
+            return FSM_NO_TRANSITION;
+        }
+
         if(length_read){
 
             fsm->input_buffer_cursor += length_read;
-
-            if(!next_state){
-                return FSM_NO_TRANSITION;
-            }
-
             current_state = next_state;
+
+            if(fsm->input_buffer_cursor == input_buffer_len)
+                break;
+
             continue;
         }
         break;
@@ -256,4 +335,19 @@ init_fsm_output_buffer(fsm_output_buff_t *fsm_output_buff){
     
     memset(fsm_output_buff->output_buffer, 0, MAX_OUP_BUFFER_LEN);
     fsm_output_buff->curr_pos = 0;
+}
+
+void
+register_input_matching_tt_entry_cb(tt_entry_t *tt_entry,
+                            input_matching_fn input_matching_fn_cb){
+    
+    unsigned int i = 0;
+    for(; i < MAX_TT_ENTRY_CALLBACKS; i++){
+        if(tt_entry->input_matching_fn_cb[i])
+            continue;
+        tt_entry->input_matching_fn_cb[i] = 
+            input_matching_fn_cb;
+            return;   
+    }
+    assert(i != MAX_TT_ENTRY_CALLBACKS);
 }

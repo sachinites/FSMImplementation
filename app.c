@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "fsm.h"
+#include "std_fsm.h"
 
 void 
 bit_flipper_output_fn_gen(state_t *from, state_t *to,
@@ -54,6 +55,7 @@ bit_flipper_output_fn_gen(state_t *from, state_t *to,
 int
 main(int argc, char **argv){
 
+#if 0
   /*Create a FSM*/
   fsm_t *fsm = create_new_fsm("Bit Flipper");
   
@@ -85,10 +87,10 @@ main(int argc, char **argv){
   /*
    * FSM creation has been complete, not let us see how our FSM perform
    * */
- 
+ #endif
   fsm_bool_t fsm_result; 
   fsm_error_t fsm_error;
-  
+  #if 0
   fsm_error = execute_fsm(fsm, 
                           "0000000\0",         /*Input String to process*/
                           strlen("0000000\0"), /*Length of the Input String*/
@@ -129,5 +131,24 @@ main(int argc, char **argv){
         printf("FSM result = %s\n", fsm_result == FSM_TRUE ? "FSM_TRUE":"FSM_FALSE");
         printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
   }
+
+#endif
+  fsm_t *email_validator = email_validator_fsm();
+  fsm_error = execute_fsm(email_validator, 
+                          "sachinites@hotmail.com\0",
+                          strlen("sachinites@hotmail.com\0"),
+                          0,
+                          &fsm_result);
+
+  if(fsm_error == FSM_NO_ERROR) {
+      if(fsm_result == FSM_TRUE)
+          printf("Valid email\n");
+      else
+          printf("InValid Email\n");
+  }
+  else{
+      printf("FSM State Machine Failed\n");
+  }
+
   return 0;
 }
