@@ -81,5 +81,25 @@ main(int argc, char **argv){
                                     &transition_key_0, transition_keysize, D);
                                     
 /*FSM Creation Complete*/
+
+
+/*Using the Above Created FSM*/
+
+    fsm_bool_t fsm_result;
+    fsm_error_t fsm_error;
+
+    fsm_error = execute_fsm(fsm,
+                    "0101010101\0",         /*Input String to process*/
+                    strlen("0101010101\0"), /*Length of the Input String*/
+                    &fsm_result);
+
+    if(fsm_error == FSM_NO_ERROR){
+        if(fsm_result == FSM_TRUE){
+            printf("Input String is Validated\n");
+        }
+        else{
+            printf("Input String is Validated\n");
+        }
+    }
     return 0;
 }

@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <assert.h>
 #include "fsm.h"
 
 fsm_t *create_new_fsm(const char *fsm_name){
@@ -128,3 +129,88 @@ tt_entry_t *create_and_insert_new_tt_entry(tt_t *trans_table,
     return tt_entry_ptr;
 }
 
+static fsm_bool_t
+fsm_default_input_matching_fn(char *transition_key,
+        unsigned int size,
+        char *user_data){
+
+    if(memcmp(transition_key, user_data, size))
+        return FSM_FALSE;
+    return FSM_TRUE;
+}
+
+static state_t *
+fsm_apply_transition(fsm_t *fsm, state_t *state,
+        char *input_buffer,        /*Input buffer to parse*/
+        unsigned int size,         /*Remaining length of the buffer*/
+        unsigned int *length_read){ /* initialized to zero, returns the no of bytes read*/
+
+    tt_entry_t *tt_entry = NULL;
+    state_t *next_state = NULL;
+
+    FSM_ITERATE_TRANS_TABLE_BEGIN((&state->state_trans_table),
+            tt_entry){
+
+        if((tt_entry->transition_key_size <= size) &&
+                fsm_default_input_matching_fn(tt_entry->transition_key,
+                                    tt_entry->transition_key_size,
+                                    input_buffer)){
+
+            next_state = tt_entry->next_state;
+            *length_read = tt_entry->transition_key_size;
+            return next_state;
+        }
+
+    } FSM_ITERATE_TRANS_TABLE_END(&state->state_trans_table,
+            tt_entry);
+    return NULL;
+}
+
+
+fsm_error_t
+execute_fsm(fsm_t *fsm,
+        char *input_buffer,
+        unsigned int size,
+        fsm_bool_t *fsm_result){
+
+    state_t *initial_state = fsm->initial_state;
+    assert(initial_state);
+
+    state_t *current_state = initial_state;
+    state_t *next_state = NULL;
+
+    fsm->input_buffer_cursor = 0;
+    unsigned int length_read = 0;
+    unsigned int input_buffer_len = size;
+
+    if(fsm_result){
+        *fsm_result = FSM_FALSE;
+    }
+
+    while(fsm->input_buffer_cursor < MAX_INP_BUFFER_LEN){
+
+        length_read = 0;
+        next_state = fsm_apply_transition(fsm, current_state,
+                        input_buffer + fsm->input_buffer_cursor,
+                        (input_buffer_len - fsm->input_buffer_cursor),
+                        &length_read);
+
+        if(length_read){
+
+            fsm->input_buffer_cursor += length_read;
+
+            if(!next_state){
+                return FSM_NO_TRANSITION;
+            }
+
+            current_state = next_state;
+            continue;
+        }
+        break;
+    }
+
+    if(fsm_result){
+        *fsm_result = current_state->is_final;
+    }
+    return FSM_NO_ERROR;
+}
