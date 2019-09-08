@@ -63,7 +63,7 @@ set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size){
 
 
 state_t *
-create_new_state(fsm_t *fsm, char *state_name,
+create_new_state(char *state_name,
                  fsm_bool_t is_final){
 
     assert(state_name);
@@ -107,7 +107,7 @@ get_next_empty_tt_entry(tt_t *trans_table){
 }
 
 
-void create_and_insert_new_tt_entry(tt_t *trans_table,
+tt_entry_t *create_and_insert_new_tt_entry(tt_t *trans_table,
         char *transition_key,
         unsigned int sizeof_key,
         state_t *next_state){
@@ -125,15 +125,6 @@ void create_and_insert_new_tt_entry(tt_t *trans_table,
     tt_entry_ptr->transition_key[sizeof_key] = '\0';
     tt_entry_ptr->transition_key_size = sizeof_key;
     tt_entry_ptr->next_state = next_state;
-}
-
-
-fsm_error_t
-execute_fsm(fsm_t *fsm, 
-            char *input_buffer,         /*Input buffer containing user data*/
-            unsigned int size,          /*Size of the data in the buffer*/
-            fsm_bool_t *fsm_result){    /*A flag to track if data parsing ends in final state or not */
-
-
+    return tt_entry_ptr;
 }
 

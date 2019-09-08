@@ -84,7 +84,7 @@ set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size){
 
 
 state_t *
-create_new_state(fsm_t *fsm, char *state_name,
+create_new_state(char *state_name,
                  fsm_bool_t is_final){
 
     assert(state_name);

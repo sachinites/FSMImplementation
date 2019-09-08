@@ -62,7 +62,7 @@ main(int argc, char **argv){
   fsm_register_generic_transition_output_fn(fsm, bit_flipper_output_fn_gen);
 
   /*Create FSM State*/
-  state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE);
+  state_t *state_S0 = create_new_state("S0", FSM_TRUE);
   //state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
 
   /*Set FSM initial state*/

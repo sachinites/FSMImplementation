@@ -171,7 +171,7 @@ void
 set_fsm_default_output_fn(fsm_t *fsm, output_fn default_output_fn);
 
 state_t *
-create_new_state(fsm_t *fsm, char *state_name, fsm_bool_t is_final); 
+create_new_state(char *state_name, fsm_bool_t is_final); 
 
 tt_entry_t * create_and_insert_new_tt_entry(tt_t *trans_table,
                                     char *transition_key,

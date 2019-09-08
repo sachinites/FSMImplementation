@@ -112,15 +112,15 @@ fsm_t *email_validator_fsm(){
     fsm_register_generic_transition_output_fn(fsm, 0);
 
 /*DEAD_STATE*/
-    state_t *DEAD_STATE = create_new_state(fsm, "D", FSM_FALSE);
+    state_t *DEAD_STATE = create_new_state("D", FSM_FALSE);
     create_and_insert_new_tt_entry_wild_card(DEAD_STATE, DEAD_STATE, 0);
 
 /*state_F*/
-    state_t *state_F = create_new_state(fsm, "F", FSM_TRUE);
+    state_t *state_F = create_new_state("F", FSM_TRUE);
     create_and_insert_new_tt_entry_wild_card(state_F, DEAD_STATE, 0);
 
 /*q6*/
-    state_t *state_q6 = create_new_state(fsm, "q6", FSM_FALSE);
+    state_t *state_q6 = create_new_state("q6", FSM_FALSE);
 
     transition_keysize = strlen("gmail.com");
     strncpy(transition_key, "gmail.com", transition_keysize);
@@ -137,7 +137,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q6, DEAD_STATE, 0);
 
 /*q5*/
-    state_t *state_q5 = create_new_state(fsm, "q5", FSM_FALSE);
+    state_t *state_q5 = create_new_state("q5", FSM_FALSE);
     tt_entry = create_and_insert_new_tt_entry(&state_q5->state_trans_table,
                                    0, 0, 0,
                                    state_q5);
@@ -154,7 +154,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q5, DEAD_STATE, 0);
     
 /*q4*/
-    state_t *state_q4 = create_new_state(fsm, "q4", FSM_FALSE);
+    state_t *state_q4 = create_new_state("q4", FSM_FALSE);
     tt_entry = create_and_insert_new_tt_entry(&state_q4->state_trans_table,
                                    0, 0, 0,
                                    state_q5);
@@ -165,7 +165,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q4, DEAD_STATE, 0);
 
 /*q3*/
-    state_t *state_q3 = create_new_state(fsm, "q3", FSM_FALSE);
+    state_t *state_q3 = create_new_state("q3", FSM_FALSE);
     tt_entry = create_and_insert_new_tt_entry(&state_q3->state_trans_table,
                                    0, 0, 0,
                                    state_q4);
@@ -176,7 +176,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q3, DEAD_STATE, 0); 
 
 /*q2*/
-    state_t *state_q2 = create_new_state(fsm, "q2", FSM_FALSE);
+    state_t *state_q2 = create_new_state("q2", FSM_FALSE);
     tt_entry = create_and_insert_new_tt_entry(&state_q2->state_trans_table,
                                    0, 0, 0,
                                    state_q3);
@@ -187,7 +187,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q2, DEAD_STATE, 0); 
 
 /*q1*/
-    state_t *state_q1 = create_new_state(fsm, "q1", FSM_FALSE);
+    state_t *state_q1 = create_new_state("q1", FSM_FALSE);
     tt_entry = create_and_insert_new_tt_entry(&state_q1->state_trans_table,
                                    0, 0, 0,
                                    state_q2);
@@ -198,7 +198,7 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q1, DEAD_STATE, 0); 
 
 /*q0*/
-    state_t *state_q0 = create_new_state(fsm, "q0", FSM_FALSE);
+    state_t *state_q0 = create_new_state("q0", FSM_FALSE);
     set_fsm_initial_state(fsm, state_q0);
 
     tt_entry = create_and_insert_new_tt_entry(&state_q0->state_trans_table,

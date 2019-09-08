@@ -90,6 +90,19 @@ struct fsm_{
     unsigned int input_buffer_cursor;
 };
 
+fsm_t *create_new_fsm(const char *fsm_name);
+
+void
+set_fsm_initial_state(fsm_t *fsm, state_t *state);
+
+state_t *
+create_new_state(char *state_name, fsm_bool_t is_final);
+
+tt_entry_t * create_and_insert_new_tt_entry(tt_t *trans_table,
+        char *transition_key,
+        unsigned int sizeof_key,
+        state_t *next_state);
+
 #define FSM_ITERATE_TRANS_TABLE_BEGIN(tr_table_ptr, tt_entry_ptr)   \
     do{                                                             \
         unsigned int index = 0;                                     \
@@ -101,12 +114,5 @@ struct fsm_{
 
 #define FSM_ITERATE_TRANS_TABLE_END(tr_table_ptr, tt_entry_ptr)     \
         }}while(0);
-
-typedef enum {
-
-        FSM_NO_TRANSITION,
-        FSM_NO_ERROR
-} fsm_error_t;
-
 
 #endif
