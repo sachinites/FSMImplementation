@@ -53,7 +53,7 @@ main(int argc, char **argv){
     set_fsm_initial_state(fsm, state_q0);
     
     state_q1 = create_new_state("q1", FSM_TRUE);
-    state_q1 = create_new_state("q1", FSM_TRUE);
+    state_q2 = create_new_state("q2", FSM_TRUE);
     D = create_new_state("D", FSM_FALSE);
 
 /*Transition Table of State q0*/
