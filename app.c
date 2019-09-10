@@ -148,5 +148,34 @@ main(int argc, char **argv){
       printf("FSM State Machine Failed\n");
   }
 
+
+/*Demonstration of SubString Counter*/
+
+  fsm_t *fsm_substr_counter = fsm_substring_counter();
+  //fsm_register_input_matching_fn_cb(fsm_substr_counter, match_any_character_match_fn);
+  char *input_string = 
+    "Hello, My name is Abhi. "
+    "Visit my website : https://csepracticals.wixsite.com/csepracticals "
+    "which was created by Abhishek Sagar\0";
+
+  fsm_error = execute_fsm(fsm_substr_counter,
+                           input_string,
+                           strlen(input_string),
+                           0,
+                           0);
+
+  if(fsm_error == FSM_NO_ERROR){
+    
+    char str[5];
+    unsigned int i = 0;
+
+    for( ; i < fsm_substr_counter->fsm_output_buff.curr_pos; i++){
+        memset(str, 0, 5);
+        strncpy(str, (char *)(*(((unsigned int *)(fsm_substr_counter->fsm_output_buff.output_buffer)) + i)), 4);
+        str[4] = '\0';
+        printf("%s\n", str);
+    }
+  }
+                                                  
   return 0;
 }

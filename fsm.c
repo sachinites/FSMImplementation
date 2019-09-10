@@ -57,6 +57,15 @@ fsm_pass_through_fn(char *transition_key,
     return FSM_TRUE;
 }
 
+static void
+fsm_null_output_fn(state_t *from, state_t *to,
+                   char *input_buff,
+                   unsigned int input_buff_size,
+                   fsm_output_buff_t *fsm_output_buff){
+
+    /*Do nothing*/
+}
+
 
 fsm_t *create_new_fsm(const char *fsm_name){
 
@@ -149,7 +158,7 @@ create_and_insert_new_tt_entry_wild_card(state_t *from_state,
                                      output_fn output_fn_cb){
 
     tt_entry_t *tt_entry = create_and_insert_new_tt_entry(&from_state->state_trans_table,
-                                   0, 0, output_fn_cb, to_state);
+                                   0, 0, output_fn_cb ? output_fn_cb : fsm_null_output_fn, to_state);
     register_input_matching_tt_entry_cb(tt_entry, fsm_pass_through_fn);
 }
 

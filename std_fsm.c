@@ -100,6 +100,14 @@ match_any_0_9_or_a_z_or_A_Z_match_fn(char *data1, unsigned int size,
     /**length_read shall be set to 1 by callees*/
 }
 
+fsm_bool_t
+match_any_character_match_fn(char *data1, unsigned int size,
+                             char *data2, unsigned int *length_read){
+ 
+    *length_read = 1;
+    return FSM_TRUE;  
+}
+
 fsm_t *email_validator_fsm(){
 
     tt_entry_t *tt_entry = NULL;
@@ -211,4 +219,45 @@ fsm_t *email_validator_fsm(){
     create_and_insert_new_tt_entry_wild_card(state_q0, DEAD_STATE, 0); 
 
     return fsm; 
+}
+
+void
+substring_occurrence_counter(state_t *from, state_t *to,
+                             char *input_buff,
+                             unsigned int input_buff_size,
+                             fsm_output_buff_t *fsm_output_buff){
+
+
+    unsigned int *counter_array = (unsigned int *)(fsm_output_buff->output_buffer);
+    unsigned int index = fsm_output_buff->curr_pos;
+
+    if((index * sizeof(unsigned int)) < MAX_FSM_OUTPUT_BUFFER){
+
+        counter_array[index] = (unsigned int)(input_buff);
+        fsm_output_buff->curr_pos++;
+    }
+}
+
+
+fsm_t *
+fsm_substring_counter(){
+
+    fsm_t *fsm = create_new_fsm("FSM Substring Counter");
+    fsm_register_generic_transition_output_fn(fsm, substring_occurrence_counter);
+    state_t *state_S0 = create_new_state("S0", FSM_FALSE);
+    set_fsm_initial_state(fsm, state_S0);
+    
+    char transition_key[MAX_TRANSITION_KEY_SIZE];
+    unsigned int transition_keysize = 0;
+
+    /*Substring to match*/
+    transition_keysize = strlen("Abhi");
+    strncpy(transition_key, "Abhi", transition_keysize);
+
+    create_and_insert_new_tt_entry(&state_S0->state_trans_table,
+                                    transition_key, transition_keysize, 
+                                    substring_occurrence_counter,
+                                    state_S0);
+    create_and_insert_new_tt_entry_wild_card(state_S0, state_S0, 0);
+    return fsm;
 }

@@ -62,6 +62,10 @@ match_any_0_9_or_a_z_or_A_Z_match_fn(char *data1,
                                      char *data2,
                                      unsigned int *length_read);
 
+fsm_bool_t
+match_any_character_match_fn(char *data1, unsigned int size,
+                             char *data2, unsigned int *length_read);
+
 /*Standard Example FSMs*/
 fsm_t *email_validator_fsm();
 fsm_t *phone_number_validator_fsm();
@@ -70,4 +74,5 @@ fsm_t *phone_number_validator_fsm();
 fsm_t *mealy_machine_fsm();
 fsm_t *moore_machine_fsm();
 
+fsm_t *fsm_substring_counter();
 #endif /* __STD_FSM__ */
