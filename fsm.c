@@ -58,15 +58,6 @@ fsm_pass_through_fn(char *transition_key,
 }
 
 void
-fsm_null_output_fn(state_t *from, state_t *to,
-                   char *input_buff,
-                   unsigned int input_buff_size,
-                   fsm_output_buff_t *fsm_output_buff){
-
-    /*Do nothing*/
-}
-
-void
 fsm_echo_output_fn(state_t *from, state_t *to,
                    char *input_buff,
                    unsigned int input_buff_size,

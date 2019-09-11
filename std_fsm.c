@@ -312,10 +312,10 @@ fsm_binary_to_hex(){
     /*q4*/
     state_t *q4 = create_new_state("q4", FSM_TRUE);
     create_and_insert_new_tt_entry(&q4->state_trans_table,
-                                   "0", 1, fsm_null_output_fn,
+                                   "0", 1, 0,
                                     q1);      
     create_and_insert_new_tt_entry(&q4->state_trans_table,
-                                   "1", 1, fsm_null_output_fn,
+                                   "1", 1, 0,
                                     q1);
     /*q3*/
     state_t *q3 = create_new_state("q3", FSM_FALSE);
@@ -329,26 +329,26 @@ fsm_binary_to_hex(){
     /*q2*/
     state_t *q2 = create_new_state("q2", FSM_FALSE);
     create_and_insert_new_tt_entry(&q2->state_trans_table,
-                                   "0", 1, fsm_null_output_fn,
+                                   "0", 1, 0,
                                     q3);      
     create_and_insert_new_tt_entry(&q2->state_trans_table,
-                                   "1", 1, fsm_null_output_fn,
+                                   "1", 1, 0,
                                     q3);
     /*q1*/
     create_and_insert_new_tt_entry(&q1->state_trans_table,
-                                   "0", 1, fsm_null_output_fn,
+                                   "0", 1, 0,
                                     q2);      
     create_and_insert_new_tt_entry(&q1->state_trans_table,
-                                   "1", 1, fsm_null_output_fn,
+                                   "1", 1, 0,
                                     q2);
     /*q0*/
     state_t *q0 = create_new_state("q0", FSM_FALSE);
     set_fsm_initial_state(fsm, q0);
     create_and_insert_new_tt_entry(&q0->state_trans_table,
-                                   "0", 1, fsm_null_output_fn,
+                                   "0", 1, 0,
                                     q1);      
     create_and_insert_new_tt_entry(&q0->state_trans_table,
-                                   "1", 1, fsm_null_output_fn,
+                                   "1", 1, 0,
                                     q1);
     return fsm;
 }

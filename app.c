@@ -176,8 +176,8 @@ main(int argc, char **argv){
 
   fsm_t *fsm_bin_to_hex = fsm_binary_to_hex();
   fsm_error = execute_fsm(fsm_bin_to_hex,
-                          "11111111101111111111011111111111\0",
-                          strlen("11111111101111111111011111111111\0"),
+                          "00011111111111111111111111111111\0",
+                   strlen("00011111111111111111111111111111\0"),
                           0, 0);
 
 

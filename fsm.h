@@ -72,12 +72,6 @@ typedef void (*output_fn)(state_t *, state_t *,
                           fsm_output_buff_t *);  /*Output Buff*/
 
 void
-fsm_null_output_fn(state_t *from, state_t *to,
-                   char *input_buff,
-                   unsigned int input_buff_size,
-                   fsm_output_buff_t *fsm_output_buff);
-                      
-void
 fsm_echo_output_fn(state_t *from, state_t *to,
                    char *input_buff,
                    unsigned int input_buff_size,
