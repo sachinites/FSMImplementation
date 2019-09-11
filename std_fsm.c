@@ -260,14 +260,8 @@ convert_binary_to_hex(state_t *from, state_t *to,
             fsm_output_buff_t *fsm_output_buff){
 
 
-    /* input_buff_size will always be 4. This function converts 4 binary digits 
-     * into its Hex equivalent*/
-
-    fsm_output_buff->output_buffer[fsm_output_buff->curr_pos] = input_buff[0];
-    fsm_output_buff->curr_pos++;
-
     char hex;
-    char *last_4_bits = fsm_output_buff->output_buffer + fsm_output_buff->curr_pos - 4;
+    char *last_4_bits = input_buff - 3;
 
     if     (last_4_bits[0] == '0' && last_4_bits[1] == '0' && last_4_bits[2] == '0' && last_4_bits[3] == '0')
         hex = '0';
@@ -303,8 +297,7 @@ convert_binary_to_hex(state_t *from, state_t *to,
         hex = 'F';
     else
         assert(0);
-    fsm_output_buff->curr_pos -= 4; 
-    memset(fsm_output_buff->output_buffer + fsm_output_buff->curr_pos, 0, 4);
+
     fsm_output_buff->output_buffer[fsm_output_buff->curr_pos] = hex;
     fsm_output_buff->curr_pos++;
 }
@@ -319,10 +312,10 @@ fsm_binary_to_hex(){
     /*q4*/
     state_t *q4 = create_new_state("q4", FSM_TRUE);
     create_and_insert_new_tt_entry(&q4->state_trans_table,
-                                   "0", 1, fsm_echo_output_fn,
+                                   "0", 1, fsm_null_output_fn,
                                     q1);      
     create_and_insert_new_tt_entry(&q4->state_trans_table,
-                                   "1", 1, fsm_echo_output_fn,
+                                   "1", 1, fsm_null_output_fn,
                                     q1);
     /*q3*/
     state_t *q3 = create_new_state("q3", FSM_FALSE);
@@ -336,26 +329,26 @@ fsm_binary_to_hex(){
     /*q2*/
     state_t *q2 = create_new_state("q2", FSM_FALSE);
     create_and_insert_new_tt_entry(&q2->state_trans_table,
-                                   "0", 1, fsm_echo_output_fn,
+                                   "0", 1, fsm_null_output_fn,
                                     q3);      
     create_and_insert_new_tt_entry(&q2->state_trans_table,
-                                   "1", 1, fsm_echo_output_fn,
+                                   "1", 1, fsm_null_output_fn,
                                     q3);
     /*q1*/
     create_and_insert_new_tt_entry(&q1->state_trans_table,
-                                   "0", 1, fsm_echo_output_fn,
+                                   "0", 1, fsm_null_output_fn,
                                     q2);      
     create_and_insert_new_tt_entry(&q1->state_trans_table,
-                                   "1", 1, fsm_echo_output_fn,
+                                   "1", 1, fsm_null_output_fn,
                                     q2);
     /*q0*/
     state_t *q0 = create_new_state("q0", FSM_FALSE);
     set_fsm_initial_state(fsm, q0);
     create_and_insert_new_tt_entry(&q0->state_trans_table,
-                                   "0", 1, fsm_echo_output_fn,
+                                   "0", 1, fsm_null_output_fn,
                                     q1);      
     create_and_insert_new_tt_entry(&q0->state_trans_table,
-                                   "1", 1, fsm_echo_output_fn,
+                                   "1", 1, fsm_null_output_fn,
                                     q1);
     return fsm;
 }

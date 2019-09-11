@@ -330,6 +330,12 @@ execute_fsm(fsm_t *fsm,
    if(fsm_result){ 
        *fsm_result = current_state->is_final; 
    }
+
+#if 0
+   if(output_buffer->curr_pos < MAX_FSM_OUTPUT_BUFFER)
+       output_buffer->output_buffer[output_buffer->curr_pos] = '\0';
+#endif
+
    return FSM_NO_ERROR;
 }
 
