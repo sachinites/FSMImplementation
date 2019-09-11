@@ -116,9 +116,6 @@ fsm_t *email_validator_fsm(){
 
     fsm_t *fsm = create_new_fsm("Email Validator");
 
-    /*No output required*/
-    fsm_register_generic_transition_output_fn(fsm, 0);
-
 /*DEAD_STATE*/
     state_t *DEAD_STATE = create_new_state("D", FSM_FALSE);
     create_and_insert_new_tt_entry_wild_card(DEAD_STATE, DEAD_STATE, 0);
@@ -240,24 +237,126 @@ substring_occurrence_counter(state_t *from, state_t *to,
 
 
 fsm_t *
-fsm_substring_counter(){
+fsm_substring_counter(char *common_trans_key,
+                      unsigned int trans_key_size){
 
     fsm_t *fsm = create_new_fsm("FSM Substring Counter");
-    fsm_register_generic_transition_output_fn(fsm, substring_occurrence_counter);
     state_t *state_S0 = create_new_state("S0", FSM_FALSE);
     set_fsm_initial_state(fsm, state_S0);
     
-    char transition_key[MAX_TRANSITION_KEY_SIZE];
-    unsigned int transition_keysize = 0;
-
-    /*Substring to match*/
-    transition_keysize = strlen("Abhi");
-    strncpy(transition_key, "Abhi", transition_keysize);
-
     create_and_insert_new_tt_entry(&state_S0->state_trans_table,
-                                    transition_key, transition_keysize, 
+                                    common_trans_key, 
+                                    trans_key_size, 
                                     substring_occurrence_counter,
                                     state_S0);
     create_and_insert_new_tt_entry_wild_card(state_S0, state_S0, 0);
     return fsm;
 }
+
+void
+convert_binary_to_hex(state_t *from, state_t *to,
+            char *input_buff,
+            unsigned int input_buff_size,
+            fsm_output_buff_t *fsm_output_buff){
+
+
+    /* input_buff_size will always be 4. This function converts 4 binary digits 
+     * into its Hex equivalent*/
+
+    fsm_output_buff->output_buffer[fsm_output_buff->curr_pos] = input_buff[0];
+    fsm_output_buff->curr_pos++;
+
+    char hex;
+    char *last_4_bits = fsm_output_buff->output_buffer + fsm_output_buff->curr_pos - 4;
+
+    if     (last_4_bits[0] == '0' && last_4_bits[1] == '0' && last_4_bits[2] == '0' && last_4_bits[3] == '0')
+        hex = '0';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '0' && last_4_bits[2] == '0' && last_4_bits[3] == '1')
+        hex = '1';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '0' && last_4_bits[2] == '1' && last_4_bits[3] == '0')
+        hex = '2';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '0' && last_4_bits[2] == '1' && last_4_bits[3] == '1')
+        hex = '3';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '1' && last_4_bits[2] == '0' && last_4_bits[3] == '0')
+        hex = '4';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '1' && last_4_bits[2] == '0' && last_4_bits[3] == '1')
+        hex = '5';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '1' && last_4_bits[2] == '1' && last_4_bits[3] == '0')
+        hex = '6';
+    else if(last_4_bits[0] == '0' && last_4_bits[1] == '1' && last_4_bits[2] == '1' && last_4_bits[3] == '1')
+        hex = '7';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '0' && last_4_bits[2] == '0' && last_4_bits[3] == '0')
+        hex = '8';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '0' && last_4_bits[2] == '0' && last_4_bits[3] == '1')
+        hex = '9';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '0' && last_4_bits[2] == '1' && last_4_bits[3] == '0')
+        hex = 'A';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '0' && last_4_bits[2] == '1' && last_4_bits[3] == '1')
+        hex = 'B';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '1' && last_4_bits[2] == '0' && last_4_bits[3] == '0')
+        hex = 'C';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '1' && last_4_bits[2] == '0' && last_4_bits[3] == '1')
+        hex = 'D';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '1' && last_4_bits[2] == '1' && last_4_bits[3] == '0')
+        hex = 'E';
+    else if(last_4_bits[0] == '1' && last_4_bits[1] == '1' && last_4_bits[2] == '1' && last_4_bits[3] == '1')
+        hex = 'F';
+    else
+        assert(0);
+    fsm_output_buff->curr_pos -= 4; 
+    memset(fsm_output_buff->output_buffer + fsm_output_buff->curr_pos, 0, 4);
+    fsm_output_buff->output_buffer[fsm_output_buff->curr_pos] = hex;
+    fsm_output_buff->curr_pos++;
+}
+
+fsm_t *
+fsm_binary_to_hex(){
+
+    fsm_t *fsm = create_new_fsm("FSM Bin->Hex Converter");
+   
+    state_t *q1 = create_new_state("q1", FSM_FALSE);
+
+    /*q4*/
+    state_t *q4 = create_new_state("q4", FSM_TRUE);
+    create_and_insert_new_tt_entry(&q4->state_trans_table,
+                                   "0", 1, fsm_echo_output_fn,
+                                    q1);      
+    create_and_insert_new_tt_entry(&q4->state_trans_table,
+                                   "1", 1, fsm_echo_output_fn,
+                                    q1);
+    /*q3*/
+    state_t *q3 = create_new_state("q3", FSM_FALSE);
+    create_and_insert_new_tt_entry(&q3->state_trans_table,
+                                   "0", 1, convert_binary_to_hex,
+                                    q4);      
+    create_and_insert_new_tt_entry(&q3->state_trans_table,
+                                   "1", 1, convert_binary_to_hex,
+                                    q4);
+    
+    /*q2*/
+    state_t *q2 = create_new_state("q2", FSM_FALSE);
+    create_and_insert_new_tt_entry(&q2->state_trans_table,
+                                   "0", 1, fsm_echo_output_fn,
+                                    q3);      
+    create_and_insert_new_tt_entry(&q2->state_trans_table,
+                                   "1", 1, fsm_echo_output_fn,
+                                    q3);
+    /*q1*/
+    create_and_insert_new_tt_entry(&q1->state_trans_table,
+                                   "0", 1, fsm_echo_output_fn,
+                                    q2);      
+    create_and_insert_new_tt_entry(&q1->state_trans_table,
+                                   "1", 1, fsm_echo_output_fn,
+                                    q2);
+    /*q0*/
+    state_t *q0 = create_new_state("q0", FSM_FALSE);
+    set_fsm_initial_state(fsm, q0);
+    create_and_insert_new_tt_entry(&q0->state_trans_table,
+                                   "0", 1, fsm_echo_output_fn,
+                                    q1);      
+    create_and_insert_new_tt_entry(&q0->state_trans_table,
+                                   "1", 1, fsm_echo_output_fn,
+                                    q1);
+    return fsm;
+}
+

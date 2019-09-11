@@ -79,9 +79,6 @@ main(int argc, char **argv){
   /*Create a FSM*/
   fsm_t *fsm = create_new_fsm("Bit Flipper");
   
-  /*Optional : Resgiter the transition specific output function with FSM*/
-  fsm_register_generic_transition_output_fn(fsm, bit_flipper_output_fn_gen);
-
   /*Create FSM State*/
   state_t *state_S0 = create_new_state("S0", FSM_TRUE);
   //state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
@@ -93,13 +90,13 @@ main(int argc, char **argv){
   char bit = '0';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1,
-                                 0, /*bit_flipper_output_fn_gen, */
+                                 bit_flipper_output_fn_gen,
                                  state_S0);
 
   bit = '1';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1, 
-                                 0, /*bit_flipper_output_fn_gen, */
+                                 bit_flipper_output_fn_gen,
                                  state_S0);
 
 

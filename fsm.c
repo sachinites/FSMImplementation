@@ -57,13 +57,24 @@ fsm_pass_through_fn(char *transition_key,
     return FSM_TRUE;
 }
 
-static void
+void
 fsm_null_output_fn(state_t *from, state_t *to,
                    char *input_buff,
                    unsigned int input_buff_size,
                    fsm_output_buff_t *fsm_output_buff){
 
     /*Do nothing*/
+}
+
+void
+fsm_echo_output_fn(state_t *from, state_t *to,
+                   char *input_buff,
+                   unsigned int input_buff_size,
+                   fsm_output_buff_t *fsm_output_buff){
+
+    memcpy(fsm_output_buff->output_buffer + fsm_output_buff->curr_pos, 
+                input_buff, input_buff_size);
+    fsm_output_buff->curr_pos += input_buff_size;
 }
 
 
@@ -158,7 +169,7 @@ create_and_insert_new_tt_entry_wild_card(state_t *from_state,
                                      output_fn output_fn_cb){
 
     tt_entry_t *tt_entry = create_and_insert_new_tt_entry(&from_state->state_trans_table,
-                                   0, 0, output_fn_cb ? output_fn_cb : fsm_null_output_fn, to_state);
+                                   0, 0, output_fn_cb, to_state);
     register_input_matching_tt_entry_cb(tt_entry, fsm_pass_through_fn);
 }
 
@@ -217,7 +228,6 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
 
 
    tt_entry_t *tt_entry = NULL;
-   output_fn output_fn_cb = NULL;
    state_t *next_state = NULL;
 
    assert(size);
@@ -231,13 +241,10 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
                                                 input_buffer,
                                                 length_read)){
             
-            output_fn_cb = tt_entry->outp_fn ? tt_entry->outp_fn : \
-                            fsm->generic_transition_output_fn;
-            
             next_state = tt_entry->next_state;
              
-            if(output_fn_cb){
-                output_fn_cb(state, next_state, 
+            if(tt_entry->outp_fn){
+                tt_entry->outp_fn(state, next_state, 
                             input_buffer, 
                             tt_entry->transition_key_size,
                             output_buffer);
@@ -331,12 +338,6 @@ fsm_register_input_matching_fn_cb(fsm_t *fsm,
         input_matching_fn input_matching_fn_cb){
     
     fsm->input_matching_fn_cb = input_matching_fn_cb;
-}
-
-void
-fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb){
-
-    fsm->generic_transition_output_fn = output_fn_cb;
 }
 
 void

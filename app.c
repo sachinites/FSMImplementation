@@ -58,9 +58,6 @@ main(int argc, char **argv){
   /*Create a FSM*/
   fsm_t *fsm = create_new_fsm("Bit Flipper");
   
-  /*Optional : Resgiter the transition specific output function with FSM*/
-  fsm_register_generic_transition_output_fn(fsm, bit_flipper_output_fn_gen);
-
   /*Create FSM State*/
   state_t *state_S0 = create_new_state("S0", FSM_TRUE);
   //state_t *state_S0 = create_new_state(fsm, "S0", FSM_TRUE, bit_flipper_key_match_fn);
@@ -72,13 +69,13 @@ main(int argc, char **argv){
   char bit = '0';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1,
-                                 0, /*bit_flipper_output_fn_gen, */
+                                 bit_flipper_output_fn_gen,
                                  state_S0);
 
   bit = '1';
   create_and_insert_new_tt_entry(&state_S0->state_trans_table,
                                  &bit, 1, 
-                                 0, /*bit_flipper_output_fn_gen, */
+                                 bit_flipper_output_fn_gen,
                                  state_S0);
 
 
@@ -151,7 +148,7 @@ main(int argc, char **argv){
 
 /*Demonstration of SubString Counter*/
 
-  fsm_t *fsm_substr_counter = fsm_substring_counter();
+  fsm_t *fsm_substr_counter = fsm_substring_counter("Abhi\0", strlen("Abhi\0"));
   //fsm_register_input_matching_fn_cb(fsm_substr_counter, match_any_character_match_fn);
   char *input_string = 
     "Hello, My name is Abhi. "
@@ -176,6 +173,16 @@ main(int argc, char **argv){
         printf("%s\n", str);
     }
   }
-                                                  
+
+  fsm_t *fsm_bin_to_hex = fsm_binary_to_hex();
+  fsm_error = execute_fsm(fsm_bin_to_hex,
+                          "11111111101111111111011111111111\0",
+                          strlen("11111111101111111111011111111111\0"),
+                          0, 0);
+
+
+  if(fsm_error == FSM_NO_ERROR){
+        printf("Hex = %s\n", fsm_bin_to_hex->fsm_output_buff.output_buffer);
+  }                                                
   return 0;
 }

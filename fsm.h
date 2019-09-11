@@ -70,7 +70,19 @@ typedef unsigned int (*input_fn)(    /*Returns the size of input buffer read*/
 typedef void (*output_fn)(state_t *, state_t *,
                           char *, unsigned int,   /*Input buff, size of Inputputbuff*/
                           fsm_output_buff_t *);  /*Output Buff*/
-                          
+
+void
+fsm_null_output_fn(state_t *from, state_t *to,
+                   char *input_buff,
+                   unsigned int input_buff_size,
+                   fsm_output_buff_t *fsm_output_buff);
+                      
+void
+fsm_echo_output_fn(state_t *from, state_t *to,
+                   char *input_buff,
+                   unsigned int input_buff_size,
+                   fsm_output_buff_t *fsm_output_buff);
+
 typedef fsm_bool_t (*input_matching_fn)(
     char *data1, 
     unsigned int size,
@@ -144,15 +156,7 @@ struct fsm_{
     /* A generic function to match the input string with the
      * key of transition table*/
     input_matching_fn input_matching_fn_cb;
-    /* A generic function to output whenever transition happens from
-     * one state to another. This fn shall be overridden with 
-     * tt_entry_t->output_fn
-     * */
-    output_fn generic_transition_output_fn;
 };
-
-void
-fsm_register_generic_transition_output_fn(fsm_t *fsm, output_fn output_fn_cb);
 
 void
 fsm_register_input_matching_fn_cb(fsm_t *fsm,
