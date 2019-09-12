@@ -111,7 +111,8 @@ get_next_empty_tt_entry(tt_t *trans_table){
 tt_entry_t *create_and_insert_new_tt_entry(tt_t *trans_table,
         char *transition_key,
         unsigned int sizeof_key,
-        state_t *next_state){
+        state_t *next_state,
+        output_fn outp_fn){
 
     assert(sizeof_key < MAX_TRANSITION_KEY_SIZE);
 
@@ -126,6 +127,7 @@ tt_entry_t *create_and_insert_new_tt_entry(tt_t *trans_table,
     tt_entry_ptr->transition_key[sizeof_key] = '\0';
     tt_entry_ptr->transition_key_size = sizeof_key;
     tt_entry_ptr->next_state = next_state;
+    tt_entry_ptr->outp_fn = outp_fn;
     return tt_entry_ptr;
 }
 
@@ -143,7 +145,8 @@ static state_t *
 fsm_apply_transition(fsm_t *fsm, state_t *state,
         char *input_buffer,        /*Input buffer to parse*/
         unsigned int size,         /*Remaining length of the buffer*/
-        unsigned int *length_read){ /* initialized to zero, returns the no of bytes read*/
+        unsigned int *length_read, /* initialized to zero, returns the no of bytes read*/
+        fsm_output_buff_t *output_buffer){
 
     tt_entry_t *tt_entry = NULL;
     state_t *next_state = NULL;
@@ -157,6 +160,14 @@ fsm_apply_transition(fsm_t *fsm, state_t *state,
                                     input_buffer)){
 
             next_state = tt_entry->next_state;
+            
+            if(tt_entry->outp_fn){
+                tt_entry->outp_fn(state, next_state,
+                        input_buffer,
+                        tt_entry->transition_key_size,
+                        output_buffer);
+            }
+
             *length_read = tt_entry->transition_key_size;
             return next_state;
         }
@@ -171,6 +182,7 @@ fsm_error_t
 execute_fsm(fsm_t *fsm,
         char *input_buffer,
         unsigned int size,
+        fsm_output_buff_t *output_buffer,
         fsm_bool_t *fsm_result){
 
     state_t *initial_state = fsm->initial_state;
@@ -193,7 +205,7 @@ execute_fsm(fsm_t *fsm,
         next_state = fsm_apply_transition(fsm, current_state,
                         input_buffer + fsm->input_buffer_cursor,
                         (input_buffer_len - fsm->input_buffer_cursor),
-                        &length_read);
+                        &length_read, output_buffer);
 
         if(length_read){
 
@@ -213,4 +225,12 @@ execute_fsm(fsm_t *fsm,
         *fsm_result = current_state->is_final;
     }
     return FSM_NO_ERROR;
+}
+
+void
+init_fsm_output_buffer (fsm_output_buff_t *
+                    fsm_output_buff){
+
+    memset(fsm_output_buff->output_buffer, 0, MAX_FSM_OUTPUT_BUFFER);
+    fsm_output_buff->curr_pos = 0;
 }

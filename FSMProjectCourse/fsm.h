@@ -41,6 +41,7 @@
 #define MAX_STATE_NAME_SIZE 32
 #define MAX_FSM_NAME_SIZE 32
 #define MAX_TRANSITION_KEY_SIZE 64
+#define MAX_FSM_OUTPUT_BUFFER 1024
 
 typedef enum {
 
@@ -52,11 +53,25 @@ typedef enum {
 typedef struct state_ state_t;
 typedef struct fsm_ fsm_t;
 
+typedef struct fsm_output_buff_{
+    char output_buffer[MAX_FSM_OUTPUT_BUFFER];
+    unsigned int curr_pos;
+} fsm_output_buff_t;
+
+typedef void (*output_fn)(state_t *, state_t *,
+        char *, unsigned int,   /*Input buff, size of Inputputbuff*/
+        fsm_output_buff_t *);   /*Output Buff*/
+
+void
+init_fsm_output_buffer (fsm_output_buff_t *
+                    fsm_output_buff);
+
 typedef struct tt_entry_ {
 
     char transition_key[MAX_TRANSITION_KEY_SIZE];
     unsigned int transition_key_size;
     state_t *next_state;
+    output_fn outp_fn;
 } tt_entry_t;
 
 typedef struct tt_{
@@ -96,7 +111,8 @@ create_new_state(char *state_name, fsm_bool_t is_final);
 tt_entry_t * create_and_insert_new_tt_entry(tt_t *trans_table,
         char *transition_key,
         unsigned int sizeof_key,
-        state_t *next_state);
+        state_t *next_state,
+        output_fn outp_fn);
 
 fsm_t *create_new_fsm(const char *fsm_name);
 
@@ -122,6 +138,7 @@ fsm_error_t
 execute_fsm(fsm_t *fsm,
         char *input_buffer,
         unsigned int size,
+        fsm_output_buff_t *output_buffer,
         fsm_bool_t *fsm_result);
 
 

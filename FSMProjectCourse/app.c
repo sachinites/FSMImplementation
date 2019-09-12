@@ -35,6 +35,23 @@
 #include <memory.h>
 #include "fsm.h"
 
+void
+bit_flipper_output_fn_gen(state_t *from, state_t *to,
+        char *input_buff,
+        unsigned int input_buff_size,
+        fsm_output_buff_t *fsm_output_buff){
+
+    char out;
+    out = (*input_buff == '1') ? '0' : '1';
+    fsm_output_buff->curr_pos += snprintf(fsm_output_buff->output_buffer +
+            fsm_output_buff->curr_pos,
+            (MAX_FSM_OUTPUT_BUFFER - fsm_output_buff->curr_pos - 1),
+            "%s-->%c|%c-->%s\n",
+            from->state_name, *input_buff, out,
+            to->state_name);
+}
+
+
 int
 main(int argc, char **argv){
 
@@ -58,27 +75,27 @@ main(int argc, char **argv){
 
 /*Transition Table of State q0*/
     create_and_insert_new_tt_entry(&state_q0->state_trans_table,
-                                    &transition_key_1, transition_keysize, state_q1);
+                                    &transition_key_1, transition_keysize, state_q1, bit_flipper_output_fn_gen);
     create_and_insert_new_tt_entry(&state_q0->state_trans_table,
-                                    &transition_key_0, transition_keysize, state_q2);
+                                    &transition_key_0, transition_keysize, state_q2, bit_flipper_output_fn_gen);
 
 /*Transition Table of State q1*/
     create_and_insert_new_tt_entry(&state_q1->state_trans_table,
-                                    &transition_key_1, transition_keysize, D);
+                                    &transition_key_1, transition_keysize, D, bit_flipper_output_fn_gen);
     create_and_insert_new_tt_entry(&state_q1->state_trans_table,
-                                    &transition_key_0, transition_keysize, state_q2);
+                                    &transition_key_0, transition_keysize, state_q2, bit_flipper_output_fn_gen);
 
 /*Transition Table of State q2*/
     create_and_insert_new_tt_entry(&state_q2->state_trans_table,
-                                    &transition_key_1, transition_keysize, state_q1);
+                                    &transition_key_1, transition_keysize, state_q1, bit_flipper_output_fn_gen);
     create_and_insert_new_tt_entry(&state_q2->state_trans_table,
-                                    &transition_key_0, transition_keysize, D);
+                                    &transition_key_0, transition_keysize, D, bit_flipper_output_fn_gen);
 
 /*Transition Table of Dead State D*/
     create_and_insert_new_tt_entry(&D->state_trans_table,
-                                    &transition_key_1, transition_keysize, D);
+                                    &transition_key_1, transition_keysize, D, bit_flipper_output_fn_gen);
     create_and_insert_new_tt_entry(&D->state_trans_table,
-                                    &transition_key_0, transition_keysize, D);
+                                    &transition_key_0, transition_keysize, D, bit_flipper_output_fn_gen);
                                     
 /*FSM Creation Complete*/
 
@@ -87,15 +104,19 @@ main(int argc, char **argv){
 
     fsm_bool_t fsm_result;
     fsm_error_t fsm_error;
+    fsm_output_buff_t fsm_output_buff;
+    init_fsm_output_buffer(&fsm_output_buff);
 
     fsm_error = execute_fsm(fsm,
                     "0101010101\0",         /*Input String to process*/
                     strlen("0101010101\0"), /*Length of the Input String*/
+                    &fsm_output_buff,
                     &fsm_result);
 
     if(fsm_error == FSM_NO_ERROR){
         if(fsm_result == FSM_TRUE){
             printf("Input String is Validated\n");
+            printf("FSM Output string : \n%s\n", fsm_output_buff.output_buffer);
         }
         else{
             printf("Input String is Validated\n");
