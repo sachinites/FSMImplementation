@@ -81,6 +81,7 @@ typedef fsm_bool_t (*input_matching_fn)(
     char *data1, 
     unsigned int size,
     char *data2,
+    unsigned int user_data_len,
     unsigned int *length_read);
 
 typedef struct tt_entry_ {

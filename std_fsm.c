@@ -38,10 +38,15 @@ fsm_bool_t
 match_any_0_9_match_fn(char *data1,         /*Transition entry key, which will be empty buffer*/
                          unsigned int size, /*size shall be zero*/
                          char *data2,       /*Data from User Input*/
+                         unsigned int user_data_len,
                          unsigned int *length_read){
 
     /*We are bothered only about user data 'data2'*/
 
+    if(user_data_len = 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
     if(*data2 >= 48 && 
             *data2 <= 57){
 
@@ -56,9 +61,15 @@ fsm_bool_t
 match_any_a_z_match_fn(char *data1,       /*Transition entry key, which will be empty buffer*/
                        unsigned int size, /*size shall be zero*/
                        char *data2,       /*Data from User Input*/
+                       unsigned int user_data_len,
                        unsigned int *length_read){
 
     /*We are bothered only about user data 'data2'*/
+
+    if(user_data_len = 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
 
     if(*data2 >= 97 && 
             *data2 <= 122){
@@ -74,9 +85,14 @@ fsm_bool_t
 match_any_A_Z_match_fn(char *data1,       /*Transition entry key, which will be empty buffer*/
                        unsigned int size, /*size shall be zero*/
                        char *data2,       /*Data from User Input*/
+                       unsigned int user_data_len,
                        unsigned int *length_read){
 
     /*We are bothered only about user data 'data2'*/
+    if(user_data_len = 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
 
     if(*data2 >= 65 && 
             *data2 <= 90){
@@ -91,19 +107,26 @@ match_any_A_Z_match_fn(char *data1,       /*Transition entry key, which will be 
 
 fsm_bool_t
 match_any_0_9_or_a_z_or_A_Z_match_fn(char *data1, unsigned int size,
-                                     char *data2, unsigned int *length_read){
+                                     char *data2, unsigned int user_data_len,
+                                     unsigned int *length_read){
 
-    return (match_any_0_9_match_fn(data1, size, data2, length_read) || 
-            match_any_a_z_match_fn(data1, size, data2, length_read) ||
-            match_any_A_Z_match_fn(data1, size, data2, length_read));
+    return (match_any_0_9_match_fn(data1, size, data2, user_data_len, length_read) || 
+            match_any_a_z_match_fn(data1, size, data2, user_data_len, length_read) ||
+            match_any_A_Z_match_fn(data1, size, data2, user_data_len, length_read));
 
     /**length_read shall be set to 1 by callees*/
 }
 
 fsm_bool_t
 match_any_character_match_fn(char *data1, unsigned int size,
-                             char *data2, unsigned int *length_read){
+                             char *data2, 
+                             unsigned int user_data_len,
+                             unsigned int *length_read){
  
+    if(user_data_len = 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
     *length_read = 1;
     return FSM_TRUE;  
 }
@@ -302,6 +325,8 @@ convert_binary_to_hex(state_t *from, state_t *to,
     fsm_output_buff->curr_pos++;
 }
 
+/*This Violate the principles of FSM, You are not supposed to look backwards in the past
+ * of input buffer !! Redo it.*/
 fsm_t *
 fsm_binary_to_hex(){
 
