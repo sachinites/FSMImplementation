@@ -35,6 +35,11 @@
 #include <memory.h>
 #include "fsm.h"
 
+extern fsm_bool_t
+match_any_character_match_fn(char *data1, unsigned int size,
+        char *data2, unsigned int user_data_len,
+        unsigned int *length_read);
+
 static fsm_bool_t
 fsm_default_input_matching_fn(char *transition_key,
         unsigned int size,
@@ -46,21 +51,6 @@ fsm_default_input_matching_fn(char *transition_key,
         if(memcmp(transition_key, user_data, size))
             return FSM_FALSE;
         *length_read = size;
-        return FSM_TRUE;
-    }
-    *length_read = 0;
-    return FSM_FALSE;
-}
-
-static fsm_bool_t
-fsm_pass_through_fn(char *transition_key,
-                    unsigned int size,
-                    char *user_data,
-                    unsigned int user_data_len,
-                    unsigned int *length_read){
-
-    if(user_data_len > 0){
-        *length_read = 1;
         return FSM_TRUE;
     }
     *length_read = 0;
@@ -171,7 +161,7 @@ create_and_insert_new_tt_entry_wild_card(state_t *from_state,
 
     tt_entry_t *tt_entry = create_and_insert_new_tt_entry(&from_state->state_trans_table,
                                    0, 0, output_fn_cb, to_state);
-    register_input_matching_tt_entry_cb(tt_entry, fsm_pass_through_fn);
+    register_input_matching_tt_entry_cb(tt_entry, match_any_character_match_fn);
 }
 
 
@@ -179,7 +169,7 @@ static fsm_bool_t
 fsm_evaluate_transition_entry_match(fsm_t *fsm, 
                                     tt_entry_t *tt_entry, 
                                     char *input_buffer,
-                                    unsigned int size,
+                                    unsigned int input_buffer_len,
                                     unsigned int *length_read) {
 
    unsigned int i = 0;
@@ -201,7 +191,7 @@ fsm_evaluate_transition_entry_match(fsm_t *fsm,
             }
 
             if((tt_entry->input_matching_fn_cb[i])(
-                    NULL, 0, input_buffer, size, length_read)){
+                    NULL, 0, input_buffer, input_buffer_len, length_read)){
                 return FSM_TRUE;
             }
             /*Be immune !*/
@@ -212,7 +202,7 @@ fsm_evaluate_transition_entry_match(fsm_t *fsm,
 
    res = fsm->input_matching_fn_cb(tt_entry->transition_key,
            tt_entry->transition_key_size,
-           input_buffer, size, length_read);
+           input_buffer, input_buffer_len, length_read);
 
     if(res == FSM_TRUE){
         *length_read = tt_entry->transition_key_size;

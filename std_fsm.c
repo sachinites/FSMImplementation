@@ -43,7 +43,7 @@ match_any_0_9_match_fn(char *data1,         /*Transition entry key, which will b
 
     /*We are bothered only about user data 'data2'*/
 
-    if(user_data_len = 0){
+    if(user_data_len == 0){
         *length_read = 0;
         return FSM_FALSE;
     }
@@ -66,7 +66,7 @@ match_any_a_z_match_fn(char *data1,       /*Transition entry key, which will be 
 
     /*We are bothered only about user data 'data2'*/
 
-    if(user_data_len = 0){
+    if(user_data_len == 0){
         *length_read = 0;
         return FSM_FALSE;
     }
@@ -89,7 +89,7 @@ match_any_A_Z_match_fn(char *data1,       /*Transition entry key, which will be 
                        unsigned int *length_read){
 
     /*We are bothered only about user data 'data2'*/
-    if(user_data_len = 0){
+    if(user_data_len == 0){
         *length_read = 0;
         return FSM_FALSE;
     }
@@ -123,7 +123,7 @@ match_any_character_match_fn(char *data1, unsigned int size,
                              unsigned int user_data_len,
                              unsigned int *length_read){
  
-    if(user_data_len = 0){
+    if(user_data_len == 0){
         *length_read = 0;
         return FSM_FALSE;
     }
