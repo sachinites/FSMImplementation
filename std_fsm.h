@@ -95,4 +95,7 @@ fsm_t *fsm_substring_counter(char *common_trans_key,
 fsm_t *
 fsm_binary_to_hex();
 
+bool
+ip_validate(char *ip_addr_copy);
+
 #endif /* __STD_FSM__ */

@@ -29,10 +29,10 @@
  *
  * =====================================================================================
  */
-
-#include "std_fsm.h"
-#include <memory.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <memory.h>
+#include "std_fsm.h"
 
 fsm_bool_t
 match_any_0_9_match_fn(char *data1,         /*Transition entry key, which will be empty buffer*/
@@ -378,3 +378,275 @@ fsm_binary_to_hex(){
     return fsm;
 }
 
+/* IP V4 Validator in A.B.C.D format */
+static fsm_bool_t
+match_any_0_4_match_fn(char *data1,         /* Transition entry key, which will be empty buffer*/
+                         unsigned int size ,                   /* size shall be zero*/
+                         char *data2,                            /* Data from User Input*/
+                         unsigned int user_data_len,
+                         unsigned int *length_read){
+
+    /*We are bothered only about user data 'data2'*/
+
+    if(user_data_len == 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
+    if(*data2 >= 48 && 
+            *data2 <= 52){
+
+        *length_read = 1;
+        return FSM_TRUE;
+    }
+
+    return FSM_FALSE;
+}
+
+static fsm_bool_t
+match_any_0_5_match_fn(char *data1,         /* Transition entry key, which will be empty buffer*/
+                         unsigned int size ,                   /* size shall be zero*/
+                         char *data2,                            /* Data from User Input*/
+                         unsigned int user_data_len,
+                         unsigned int *length_read){
+
+    /*We are bothered only about user data 'data2'*/
+
+    if(user_data_len == 0){
+        *length_read = 0;
+        return FSM_FALSE;
+    }
+    if(*data2 >= 48 && 
+            *data2 <= 53){
+
+        *length_read = 1;
+        return FSM_TRUE;
+    }
+
+    return FSM_FALSE;
+}
+
+
+static fsm_t *
+ip_address_octet_validator() {
+
+    tt_entry_t *tt_entry = NULL;
+    char transition_key;
+    unsigned int transition_keysize = 0;
+
+    fsm_t *fsm = create_new_fsm("IPV4 Address octet  Validator");
+
+    /*DEAD_STATE*/
+    state_t *DEAD_STATE = create_new_state("D", FSM_FALSE);
+    create_and_insert_new_tt_entry_wild_card(DEAD_STATE, DEAD_STATE, 0);
+
+    /* state q6 */
+    state_t *state_q6 = create_new_state("q6", FSM_TRUE);
+   create_and_insert_new_tt_entry_wild_card(state_q6, DEAD_STATE, 0); 
+
+    /* state q5 */
+    state_t *state_q5 = create_new_state("q5", FSM_FALSE);
+    tt_entry = create_and_insert_new_tt_entry(&state_q5->state_trans_table,
+                                   0, 0, 0,
+                                   state_q6);
+   register_input_matching_tt_entry_cb(tt_entry, match_any_0_5_match_fn); 
+   create_and_insert_new_tt_entry_wild_card(state_q5, DEAD_STATE, 0); 
+
+
+    /* state q4 */
+    state_t *state_q4 = create_new_state("q4", FSM_FALSE);
+    tt_entry = create_and_insert_new_tt_entry(&state_q4->state_trans_table,
+                                   0, 0, 0,
+                                   state_q6);
+   register_input_matching_tt_entry_cb(tt_entry, match_any_0_9_match_fn); 
+   create_and_insert_new_tt_entry_wild_card(state_q4, DEAD_STATE, 0); 
+
+
+    /* state q3 */
+    state_t *state_q3 = create_new_state("q3", FSM_FALSE);
+    tt_entry = create_and_insert_new_tt_entry(&state_q3->state_trans_table,
+                                   0, 0, 0,
+                                   state_q4);
+   register_input_matching_tt_entry_cb(tt_entry, match_any_0_4_match_fn);
+   transition_key='5';
+   tt_entry = create_and_insert_new_tt_entry(&state_q3->state_trans_table,
+                                   &transition_key, 1, 0,
+                                   state_q5);
+   create_and_insert_new_tt_entry_wild_card(state_q3, DEAD_STATE, 0); 
+
+
+    /* state q2 */
+    state_t *state_q2 = create_new_state("q2", FSM_FALSE);
+    tt_entry = create_and_insert_new_tt_entry(&state_q2->state_trans_table,
+                                   0, 0, 0,
+                                   state_q6);
+   register_input_matching_tt_entry_cb(tt_entry, match_any_0_9_match_fn); 
+   create_and_insert_new_tt_entry_wild_card(state_q2, DEAD_STATE, 0); 
+
+    /* state q1 */
+    state_t *state_q1 = create_new_state("q1", FSM_FALSE);
+    tt_entry = create_and_insert_new_tt_entry(&state_q1->state_trans_table,
+                                   0, 0, 0,
+                                   state_q2);
+   register_input_matching_tt_entry_cb(tt_entry, match_any_0_9_match_fn); 
+   create_and_insert_new_tt_entry_wild_card(state_q1, DEAD_STATE, 0); 
+
+    /* State q0 */
+    state_t *state_q0 = create_new_state("q0", FSM_FALSE);
+    set_fsm_initial_state(fsm, state_q0);
+
+    transition_key = '0';
+    tt_entry = create_and_insert_new_tt_entry(&state_q0->state_trans_table,
+                                   &transition_key, 1, 0,
+                                   state_q1);
+    transition_key = '1';
+    tt_entry = create_and_insert_new_tt_entry(&state_q0->state_trans_table,
+                                   &transition_key, 1, 0,
+                                   state_q1);
+    transition_key = '2';
+    tt_entry = create_and_insert_new_tt_entry(&state_q0->state_trans_table,
+                                   &transition_key, 1, 0,
+                                   state_q3);
+    create_and_insert_new_tt_entry_wild_card(state_q0, DEAD_STATE, 0); 
+
+    return fsm;
+}
+
+static void
+normalize_ipv4_token(char *token, char *octet){
+
+    int token_len = 0;
+
+    octet[0] = octet[1] = octet[2] = '0';
+    octet[3] = '\0';
+
+    token_len = strlen(token);
+    
+    switch(token_len) {
+        case 1:
+            octet[2] = token[0];
+            break;
+        case 2:
+            octet[1] = token[0];
+            octet[2] = token[1];
+            break;
+        case 3:
+            octet[0] = token[0];
+            octet[1] = token[1];
+            octet[2] = token[2];
+            break;
+        default:
+            assert(0);
+    }
+}
+
+bool
+ip_validate(char *ip_addr_copy)
+{
+
+    char *token;
+    char ip_addr[16];
+    int token_len = 0;
+    fsm_error_t fsm_error;
+    fsm_bool_t fsm_result;
+    static fsm_t *fsm = NULL;
+    
+    char octet[4] = {'0', '0', '0', '\0'};
+
+    strncpy(ip_addr, ip_addr_copy, 16);
+
+    token = strtok(ip_addr, ".");
+
+    if (!token) return false;
+
+    token_len = strlen(token);
+    
+    if (token_len > 3)
+        return false;
+   
+    if (!fsm) fsm = ip_address_octet_validator();
+
+    normalize_ipv4_token(token, octet);
+    fsm_error = execute_fsm(fsm,
+                            octet,
+                            3,
+                            0,
+                            &fsm_result);
+
+    if (!fsm_result)
+        return false;
+
+    token = strtok(NULL, ".");
+
+    if (!token)
+        return false;
+    if (strlen(token) > 3)
+        return false;
+
+    normalize_ipv4_token(token, octet);
+    fsm_error = execute_fsm(fsm,
+                            octet,
+                            3,
+                            0,
+                            &fsm_result);
+
+    if (!fsm_result)
+        return false;
+
+    token = strtok(NULL, ".");
+
+    if (!token)
+        return false;
+    if (strlen(token) > 3)
+        return false;
+
+    normalize_ipv4_token(token, octet);
+    fsm_error = execute_fsm(fsm,
+                            octet,
+                            3,
+                            0,
+                            &fsm_result);
+
+    if (!fsm_result)
+        return false;
+
+    token = strtok(NULL, ".");
+
+    if (!token)
+        return false;
+    if (strlen(token) > 3)
+        return false;
+
+    normalize_ipv4_token(token, octet);
+    fsm_error = execute_fsm(fsm,
+                            octet,
+                            3,
+                            0,
+                            &fsm_result);
+
+    if (!fsm_result)
+        return false;
+
+    token = strtok(NULL, ".");
+    if (!token)
+    {
+        return true;
+    }
+
+    return false;
+}
+#if 0
+int
+main(int argc, char **argv) {
+
+    char *ip_addr = "23.123.123.123";
+
+    if (ip_validate(ip_addr)) {
+       printf("Validated\n");
+    }
+    else {
+        printf("Failed\n");
+    }
+    return 0;
+}
+#endif
+/* IP V4 Validator in A.B.C.D format */

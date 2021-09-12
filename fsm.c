@@ -140,7 +140,7 @@ create_and_insert_new_tt_entry(tt_t *trans_table,
     
     if(!tt_entry_ptr){
         printf("FATAL : Transition Table is Full\n");
-        return;
+        return NULL;
     }
 
     memcpy(tt_entry_ptr->transition_key, transition_key, sizeof_key);
