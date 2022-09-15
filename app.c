@@ -52,6 +52,7 @@ bit_flipper_output_fn_gen(state_t *from, state_t *to,
              to->state_name);
 }
 
+#if 0
 int
 main(int argc, char **argv){
 
@@ -186,3 +187,14 @@ main(int argc, char **argv){
   }                                                
   return 0;
 }
+#endif
+
+int
+main (int argc, char **argv) {
+
+  char infix[] = "a.(a+b)*.b()";
+  int len;
+  char *out_str = infix_to_postfix (infix, strlen(infix), &len);
+  printf ("%s --> %s  %d\n", infix, out_str, len);
+  return 0;
+} 

@@ -134,7 +134,7 @@ init_fsm_output_buffer(fsm_output_buff_t *fsm_output_buff);
 
 struct fsm_{
 
-    /*Intitial state of FSM to start with*/
+    /*Initial state of FSM to start with*/
     state_t *initial_state;
     /*Name of FSM*/
     char fsm_name[MAX_FSM_NAME_SIZE];
@@ -143,7 +143,7 @@ struct fsm_{
     char input_buffer[MAX_INP_BUFFER_LEN];
     /* Length of above data*/
     unsigned int input_buffer_size;
-    /*Cursor to read the above input_buffer in coninuation*/
+    /*Cursor to read the above input_buffer in continuation*/
     unsigned int input_buffer_cursor;
     /* If FSM need to produce some output, the output
      * data shall be stored in this buffer*/
@@ -151,6 +151,9 @@ struct fsm_{
     /* A generic function to match the input string with the
      * key of transition table*/
     input_matching_fn input_matching_fn_cb;
+    /* final State of FSM. There can be multiple Final State of FSMs,
+    in that case, this member holds any arbitrary final state*/
+    state_t *final_state;
 };
 
 void
@@ -159,6 +162,9 @@ fsm_register_input_matching_fn_cb(fsm_t *fsm,
 
 void
 set_fsm_initial_state(fsm_t *fsm, state_t *state);
+
+void
+set_fsm_final_state(fsm_t *fsm, state_t *state);
 
 void
 set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size);
@@ -181,6 +187,11 @@ void
 create_and_insert_new_tt_entry_wild_card(state_t *from_state, 
                                          state_t *to_state, 
                                          output_fn output_fn_cb);
+
+void
+create_and_insert_new_tt_entry_epsilon(state_t *from_state,
+                                        state_t *to_state,
+                                        output_fn output_fn_cb);
 
 fsm_t *create_new_fsm(const char *fsm_name);
 
@@ -219,5 +230,35 @@ execute_fsm(fsm_t *fsm,
 void
 register_input_matching_tt_entry_cb(tt_entry_t *tt_entry, 
                             input_matching_fn input_matching_fn_cb);
+
+fsm_t *
+fsm_symbol(char *string, int len);
+
+fsm_t *
+fsm_union(fsm_t *S, fsm_t *T);
+
+fsm_t *
+fsm_concat(fsm_t *S, fsm_t *T);
+
+fsm_t *
+fsm_closure(fsm_t *S);
+
+fsm_t *
+fsm_closure_plus(fsm_t *S);
+
+fsm_t *
+fsm_closure_q(fsm_t *S);
+
+void
+fsm_print(fsm_t *fsm);
+
+fsm_t *
+fsm_nfa_construction(char *string, int str_len);
+
+unsigned char *
+infix_to_postfix(unsigned char *string, int str_len, int *new_len);
+
+int 
+fsm_operator_precedence (char ch);
 
 #endif /* __FSM__ */

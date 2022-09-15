@@ -131,6 +131,19 @@ match_any_character_match_fn(char *data1, unsigned int size,
     return FSM_TRUE;  
 }
 
+fsm_bool_t
+match_epsilon_match_fn(char *transition_key,
+                                      unsigned int transition_key_len,
+                                      char *user_data,
+                                      unsigned int user_data_len,
+                                      unsigned int *length_read) {
+
+    assert(transition_key == NULL);
+    assert(transition_key_len == 0);
+    *length_read = 0;
+    return FSM_TRUE;
+}
+
 fsm_t *email_validator_fsm(){
 
     tt_entry_t *tt_entry = NULL;

@@ -34,11 +34,8 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "fsm.h"
-
-extern fsm_bool_t
-match_any_character_match_fn(char *data1, unsigned int size,
-        char *data2, unsigned int user_data_len,
-        unsigned int *length_read);
+#include "std_fsm.h"
+#include "Stack/stack.h"
 
 static fsm_bool_t
 fsm_default_input_matching_fn(char *transition_key,
@@ -87,6 +84,13 @@ set_fsm_initial_state(fsm_t *fsm, state_t *state){
 }
 
 void
+set_fsm_final_state(fsm_t *fsm, state_t *state){
+    
+    if (state) assert(state->is_final);
+    fsm->final_state = state;
+}
+
+void
 set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size){
 
     fsm->input_buffer[size] = '\0';
@@ -97,14 +101,13 @@ set_fsm_input_buffer_size(fsm_t *fsm, unsigned int size){
 state_t *
 create_new_state(char *state_name,
                  fsm_bool_t is_final){
-
-    assert(state_name);
-    
+ 
     state_t *state = calloc(1, sizeof(state_t));
     
-    strncpy(state->state_name, state_name, MAX_STATE_NAME_SIZE -1);
-    state->state_name[MAX_STATE_NAME_SIZE -1] = '\0';
-
+    if (state_name) {
+        strncpy(state->state_name, state_name, MAX_STATE_NAME_SIZE -1);
+        state->state_name[MAX_STATE_NAME_SIZE -1] = '\0';
+    }
     state->is_final = is_final;
     return state;
 }
@@ -164,6 +167,16 @@ create_and_insert_new_tt_entry_wild_card(state_t *from_state,
     register_input_matching_tt_entry_cb(tt_entry, match_any_character_match_fn);
 }
 
+void
+create_and_insert_new_tt_entry_epsilon(state_t *from_state,
+                                        state_t *to_state,
+                                        output_fn output_fn_cb) {
+
+    tt_entry_t *tt_entry = create_and_insert_new_tt_entry(
+                                            &from_state->state_trans_table,
+                                            0, 0, output_fn_cb, to_state);
+    register_input_matching_tt_entry_cb(tt_entry, match_epsilon_match_fn);
+}
 
 static fsm_bool_t
 fsm_evaluate_transition_entry_match(fsm_t *fsm, 
@@ -359,4 +372,433 @@ register_input_matching_tt_entry_cb(tt_entry_t *tt_entry,
             return;   
     }
     assert(0);
+}
+
+/* Operations on Compiling FSMs */
+
+/*
+    R = S union T
+    Algorithm :
+    1. Create new dynamic initial state i
+    2. Create new dynamic final state f
+    3. Create epsilon transition from i to inital_state(S)
+    4. Create epsilon transition from i to inital_state(T)
+    5. Create epsilon transition from final_state(S) to f
+    6. Create epsilon transition from final_state(T) to f
+    7. Mark final States of S and T as intermediate states
+*/
+
+fsm_t *
+fsm_symbol(char *string, int len) {
+
+    fsm_t *fsm = create_new_fsm(string);
+    state_t *initial_state = create_new_state(NULL, FSM_FALSE);
+    snprintf (initial_state->state_name, "%s.qi", fsm->fsm_name);
+    set_fsm_initial_state(fsm, initial_state);
+
+    state_t *final_state = create_new_state(NULL, FSM_TRUE);
+    snprintf (final_state->state_name, "%s.qf", fsm->fsm_name);
+    set_fsm_final_state(fsm, final_state);
+
+    create_and_insert_new_tt_entry (
+            &initial_state->state_trans_table,
+            string, len, NULL, final_state);
+}
+
+fsm_t *
+fsm_union(fsm_t *S, fsm_t *T) {
+
+    fsm_t *fsm;
+    char fsm_name[MAX_FSM_NAME_SIZE];
+    char state_name[MAX_STATE_NAME_SIZE];
+
+    assert(S->initial_state);
+    assert(S->final_state);
+    assert(T->initial_state);
+    assert(T->final_state);
+
+    // Step 1
+    state_t *new_i = create_new_state(NULL, FSM_FALSE);
+    sprintf (new_i->state_name, "Dyn_i_%x", new_i);
+
+    // Step 2
+    state_t *new_f = create_new_state(NULL, FSM_TRUE);
+    sprintf (new_f->state_name, "Dyn_f_%x", new_f);
+
+    // Step 3
+    state_t *initial_state_S = S->initial_state;
+    create_and_insert_new_tt_entry_epsilon(new_i, initial_state_S, NULL);
+
+    // Step 4
+    state_t *initial_state_T = T->initial_state;
+    create_and_insert_new_tt_entry_epsilon(new_i, initial_state_T, NULL);
+
+    // Step 5
+    state_t *final_state_S = S->final_state;
+    create_and_insert_new_tt_entry_epsilon(final_state_S, new_f, NULL);
+
+    // Step 6
+    state_t *final_state_T = T->final_state;
+    create_and_insert_new_tt_entry_epsilon(final_state_T, new_f, NULL);
+
+    // Step 7
+    final_state_S->is_final = FSM_FALSE;
+    final_state_T->is_final = FSM_FALSE;
+    set_fsm_final_state(S, NULL);
+    set_fsm_final_state(T, NULL);
+
+    /* Now build the FSM */
+    sprintf(fsm_name, "%s U %s", S->fsm_name, T->fsm_name);
+    fsm = create_new_fsm(fsm_name);
+    set_fsm_initial_state(fsm, new_i);
+    set_fsm_final_state(fsm, new_f);
+    return fsm;
+}
+
+/*
+    R = S concat T
+    Algorithm :
+    1. Create epsilon transition from final_state(S) to initial_state(T)
+    2. Mark final States of S as intermediate states
+*/
+fsm_t *
+fsm_concat(fsm_t *S, fsm_t *T) {
+
+    fsm_t *fsm;
+    char fsm_name[MAX_FSM_NAME_SIZE];
+    char state_name[MAX_STATE_NAME_SIZE];
+
+    assert(S->initial_state);
+    assert(S->final_state);
+    assert(T->initial_state);
+    assert(T->final_state);
+
+    // Step 1
+    state_t *final_state_S = S->final_state;
+    create_and_insert_new_tt_entry_epsilon(final_state_S, T->initial_state, NULL);
+
+    // Step 2
+    final_state_S->is_final = FSM_FALSE;
+    set_fsm_final_state(S, NULL);
+
+    /* Now build the FSM */
+    sprintf(fsm_name, "%s C %s", S->fsm_name, T->fsm_name);
+    fsm = create_new_fsm(fsm_name);
+    set_fsm_initial_state(fsm, S->initial_state);
+    set_fsm_final_state(fsm, T->final_state);
+    return fsm;
+}
+
+/*
+    R = S*
+    Algorithm :
+    1. Create new dynamic initial state i
+    2. Create new dynamic final state f
+    3. Create epsilon transition from i to f
+    4. Create epsilon transition from i to inital_state(S)
+    5. Create epsilon transition from final_state(S) to f
+    6. Create epsilon transition from final_state(S) to inital_state(S)
+    7. Mark final States of S as intermediate states
+*/
+fsm_t *
+fsm_closure(fsm_t *S) {
+
+    fsm_t *fsm;
+    char fsm_name[MAX_FSM_NAME_SIZE];
+    char state_name[MAX_STATE_NAME_SIZE];
+
+    assert(S->initial_state);
+    assert(S->final_state);
+
+    // Step 1
+    state_t *new_i = create_new_state(NULL, FSM_FALSE);
+    sprintf (new_i->state_name, "Dyn_i_%x", new_i);
+
+    // Step 2
+    state_t *new_f = create_new_state(NULL, FSM_TRUE);
+    sprintf (new_f->state_name, "Dyn_f_%x", new_f);
+
+    // Step 3
+    create_and_insert_new_tt_entry_epsilon(new_i, new_f, NULL);
+
+    // Step 4
+    create_and_insert_new_tt_entry_epsilon(new_i, S->initial_state, NULL);
+
+    // Step 5
+    create_and_insert_new_tt_entry_epsilon(S->final_state, new_f, NULL);
+
+    // Step 6
+    create_and_insert_new_tt_entry_epsilon(S->final_state, S->initial_state, NULL);
+
+    // Step 7
+    S->final_state->is_final = FSM_FALSE;
+    set_fsm_final_state(S, NULL);
+
+    /* Now build the FSM */
+    sprintf(fsm_name, "%s*", S->fsm_name);
+    fsm = create_new_fsm(fsm_name);
+    set_fsm_initial_state(fsm, new_i);
+    set_fsm_final_state(fsm, new_f);
+    return fsm;
+}
+
+/*
+    R = S+
+    Algorithm :
+    1. Create new dynamic initial state i
+    2. Create new dynamic final state f
+    3. Create epsilon transition from i to inital_state(S)
+    4. Create epsilon transition from final_state(S) to f
+    5. Create epsilon transition from final_state(S) to inital_state(S)
+    6. Mark final States of S as intermediate states
+*/
+fsm_t *
+fsm_closure_plus(fsm_t *S) {
+
+    fsm_t *fsm;
+    char fsm_name[MAX_FSM_NAME_SIZE];
+    char state_name[MAX_STATE_NAME_SIZE];
+
+    assert(S->initial_state);
+    assert(S->final_state);
+
+    // Step 1
+    state_t *new_i = create_new_state(NULL, FSM_FALSE);
+    sprintf (new_i->state_name, "Dyn_i_%x", new_i);
+
+    // Step 2
+    state_t *new_f = create_new_state(NULL, FSM_TRUE);
+    sprintf (new_f->state_name, "Dyn_f_%x", new_f);
+
+    // Step 3
+    create_and_insert_new_tt_entry_epsilon(new_i, S->initial_state, NULL);
+
+    // Step 4
+    create_and_insert_new_tt_entry_epsilon(S->final_state, new_f, NULL);
+
+    // Step 5
+    create_and_insert_new_tt_entry_epsilon(S->final_state, S->initial_state, NULL);
+
+    // Step 6
+    S->final_state->is_final = FSM_FALSE;
+    set_fsm_final_state(S, NULL);
+
+    /* Now build the FSM */
+    sprintf(fsm_name, "%s+", S->fsm_name);
+    fsm = create_new_fsm(fsm_name);
+    set_fsm_initial_state(fsm, new_i);
+    set_fsm_final_state(fsm, new_f);
+    return fsm;
+}
+
+/*
+    R = S?
+    Algorithm :
+    1. Create new dynamic initial state i
+    2. Create new dynamic final state f
+    3. Create epsilon transition from i to f
+    4. Create epsilon transition from i to inital_state(S)
+    5. Create epsilon transition from final_state(S) to f
+    6. Mark final States of S as intermediate states
+*/
+fsm_t *
+fsm_closure_q(fsm_t *S){
+
+    fsm_t *fsm;
+    char fsm_name[MAX_FSM_NAME_SIZE];
+    char state_name[MAX_STATE_NAME_SIZE];
+
+    assert(S->initial_state);
+    assert(S->final_state);
+
+    // Step 1
+    state_t *new_i = create_new_state(NULL, FSM_FALSE);
+    sprintf (new_i->state_name, "Dyn_i_%x", new_i);
+
+    // Step 2
+    state_t *new_f = create_new_state(NULL, FSM_TRUE);
+    sprintf (new_f->state_name, "Dyn_f_%x", new_f);
+
+    // Step 3
+    create_and_insert_new_tt_entry_epsilon(new_i, new_f, NULL);
+
+    // Step 4
+    create_and_insert_new_tt_entry_epsilon(new_i, S->initial_state, NULL);
+
+    // Step 5
+    create_and_insert_new_tt_entry_epsilon(S->final_state, new_f, NULL);
+
+    // Step 6
+    S->final_state->is_final = FSM_FALSE;
+    set_fsm_final_state(S, NULL);
+
+    /* Now build the FSM */
+    sprintf(fsm_name, "%s?", S->fsm_name);
+    fsm = create_new_fsm(fsm_name);
+    set_fsm_initial_state(fsm, new_i);
+    set_fsm_final_state(fsm, new_f);
+    return fsm;
+}
+
+void
+fsm_print(fsm_t *fsm) {
+
+    printf ("fsm_name : %s\n", fsm->fsm_name);
+    printf(" I : %s\n", fsm->initial_state->state_name);
+    printf(" F : %s\n", fsm->final_state->state_name);
+}
+
+static bool
+fsm_is_operator(char ch) {
+
+    switch(ch) {
+        case '*':
+        case '|':
+        case '+':
+        case '.':
+        case '?':
+            return true;
+        default:
+            return false;
+    }
+}
+
+int 
+fsm_operator_precedence (char ch) {
+
+    switch (ch) {
+        case ' ':
+            return 0;
+        case '(':
+            return 1;
+        case '|':
+            return 2;
+        case '.':
+            return 3;
+        case '?':
+            return 4;
+        case '+':
+            return 4;
+        case '*':
+            return 4;
+        default:
+            return 8;
+    }
+}
+
+static fsm_t *
+fsm_nfa_construction_internal(char *postfix_str, int str_len) {
+
+    int i;
+    stack_t stack;
+    fsm_t *fsm1, *fsm2;
+
+    reset_stack(&stack);
+
+    for (i = 0; i < str_len; i++) {
+
+        if (!fsm_is_operator (postfix_str[i]) ) {
+            fsm1 = fsm_symbol(&postfix_str[i], 1);
+            push(&stack, (void *)fsm1);
+        }
+        else {
+            fsm2 = (fsm_t *)pop(&stack);
+            switch(postfix_str[i]) {
+                case '*':
+                    push(&stack, (void *)fsm_closure(fsm2));
+                    break;
+                case '+':
+                case '|':
+                     fsm1 = (fsm_t *)pop(&stack);
+                     push(&stack, (void *)fsm_union(fsm1, fsm2));
+                     break;
+                case '.':
+                     fsm1 = (fsm_t *)pop(&stack);
+                     push(&stack, (void *)fsm_concat(fsm1, fsm2));
+                     break;
+                default:
+                    assert(0);
+            }
+        }
+    }
+    assert(!isStackEmpty(&stack));
+    fsm1 = (fsm_t *)pop(&stack);
+    assert(isStackEmpty(&stack));
+    return fsm1;
+}
+
+fsm_t *
+fsm_nfa_construction(char *string, int str_len) {
+
+    int new_len;
+
+    char *postfix_str = infix_to_postfix(string, str_len, &new_len);
+
+   // return fsm_nfa_construction_internal(postfix_str, new_len);
+   printf ("%s\n", postfix_str);
+   return NULL;
+}
+
+unsigned char *
+infix_to_postfix(unsigned char *exp, int str_len, int *new_len) {
+
+  stack_t *output = get_new_stack();
+  stack_t *stack = get_new_stack();
+
+   int k, length;
+  for ( k = 0, length = str_len; k < length;  k++) {
+
+    // current char
+    char c = exp[k];
+
+    if (c == '(')
+      push(stack, (void *)c);
+
+    else if (c == ')') {
+      while ( !isStackEmpty(stack) && (char)getTopElem(stack) != '(') {
+        push(output, pop(stack));
+      }
+       pop(stack); // pop '('
+    }
+
+    // else work with the stack
+    else {
+      while (stack->count_of_push - stack->count_of_pop) {
+        char peekedChar = (char)getTopElem(stack);
+
+        int peekedCharPrecedence = fsm_operator_precedence(peekedChar);
+        int currentCharPrecedence = fsm_operator_precedence(c);
+
+        if (peekedCharPrecedence >= currentCharPrecedence) {
+           push(output, pop(stack));
+        } else {
+          break;
+        }
+      }
+      push(stack, (void *)c);
+    }
+
+  } // end for loop
+
+  while (stack->count_of_push - stack->count_of_pop)
+    push(output, pop(stack));
+
+  static char output_str[128];
+  k = 0;
+
+  while (!isStackEmpty(output)) {
+    char a = (char )pop(output);
+    output_str[k++] = a;
+  }
+  *new_len = k;
+  int j;
+  free_stack(output);
+  free_stack(stack);
+  for (k = 0, j = *new_len - 1; k < (*new_len)/2; k++, j--) {
+    char temp;
+    temp = output_str[k];
+    output_str[k] = output_str[j];
+    output_str[j] = temp;
+  }
+  return output_str;
 }

@@ -33,6 +33,7 @@
 #ifndef __STD_FSM__
 #define __STD_FSM__
 
+#include <stdbool.h>
 #include "fsm.h"
 
 /* Standard utility callbacks for transition table
@@ -71,6 +72,12 @@ match_any_character_match_fn(char *data1, unsigned int size,
                              char *data2, unsigned int user_data_len,
                              unsigned int *length_read);
 
+fsm_bool_t
+match_epsilon_match_fn(char *transition_key,
+                                      unsigned int transition_key_len,
+                                      char *user_data,
+                                      unsigned int user_data_len,
+                                      unsigned int *length_read);
 
 /*Standard output functions*/
 void
